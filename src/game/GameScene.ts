@@ -465,13 +465,31 @@ export class GameScene extends Phaser.Scene {
         const ms = isThrow ? m.hitstop.throwPerfectMs : m.hitstop.perfectMs;
         this.clock.freeze(this.realNow(), ms);
         this.tintFlash(Math.min(ms, 70));
-        if (m.shake) this.cameras.main.shake(ms, isThrow ? m.shake.throwPerfect : m.shake.perfect);
+        if (m.shake && !(isThrow && m.finishShake)) this.cameras.main.shake(ms, isThrow ? m.shake.throwPerfect : m.shake.perfect);
       }
+      if (isThrow) this.onThrowPerfect();
       if (m.particles === 'burst') this.sparks.explode(isThrow ? 30 : 18, c.x, c.y);
       else if (m.particles === 'light') this.sparks.explode(6, c.x, c.y);
     } else if (e.grade === 'good' && m.particles !== 'none') {
       this.sparks.explode(3, c.x, c.y);
     }
+  }
+
+  /**
+   * Phase 3(던지기) Perfect 피니시.
+   * 스프라이트 교체는 데이터가 담당: throw.onJudge.perfect.cues 의
+   *   tori.throw_perfect   → player_throw         (카케·잔심)
+   *   uke.ukemi_perfect_air → enemy_ukemi_perfect (하이폴 체공)
+   * 여기서는 교체를 보장하고(데이터에 큐가 없어도) 화면 전체를 묵직하게 흔든다.
+   */
+  private onThrowPerfect(): void {
+    if (this.tori.texture.key !== CHARACTER_TEXTURES.playerThrow && this.textures.exists(CHARACTER_TEXTURES.playerThrow)) {
+      this.tori.setTexture(CHARACTER_TEXTURES.playerThrow);
+    }
+    if (this.uke.texture.key !== CHARACTER_TEXTURES.enemyUkemiPerfect && this.textures.exists(CHARACTER_TEXTURES.enemyUkemiPerfect)) {
+      this.uke.setTexture(CHARACTER_TEXTURES.enemyUkemiPerfect);
+    }
+    if (this.mode.finishShake) this.cameras.main.shake(200, 0.02);
   }
 
   private onFinish(result: EngineResult): void {

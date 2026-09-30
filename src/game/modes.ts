@@ -17,6 +17,8 @@ export interface ModeRules {
   hitstop: { perfectMs: number; throwPerfectMs: number } | null;
   /** 카메라 셰이크 강도 (Phaser intensity). null = 없음 */
   shake: { perfect: number; throwPerfect: number } | null;
+  /** Phase 3(던지기) Perfect 피니시 셰이크 — cameras.main.shake(200, 0.02) */
+  finishShake: boolean;
   /** 판정 파티클 */
   particles: 'none' | 'light' | 'burst';
   /** 거리 이동 보간 */
@@ -46,6 +48,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     failure: { abortOnMiss: [], maxConsecutiveMiss: null, failOnNoInput: false },
     hitstop: null,
     shake: null,
+    finishShake: false, // 수련: 흔들림 없이 물 흐르듯
     particles: 'none',
     motion: { interpolation: 'smooth', stepMs: SNAP_MS, moveScale: 1.8, missStillMoves: true },
     showTimingCue: true,
@@ -62,6 +65,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     failure: null,
     hitstop: { perfectMs: 110, throwPerfectMs: 150 },
     shake: { perfect: 0.006, throwPerfect: 0.012 },
+    finishShake: true,
     particles: 'burst',
     motion: { interpolation: 'stepped', stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
     showTimingCue: false,
@@ -78,6 +82,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     failure: null,
     hitstop: null,
     shake: null,
+    finishShake: true,
     particles: 'light',
     motion: { interpolation: 'stepped', stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
     showTimingCue: true,
