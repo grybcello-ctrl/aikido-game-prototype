@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aikido-game-prototype.local/schema/technique.schema.json",
+  "title": "Aikido Technique (one-button)",
+  "description": "기술 1개 = 도입부(1회) → 진행부(1~N회 반복) → 던지기(1회) → 낙법(점수 분기). 모든 시간은 ms 정수. 페이즈 안의 시간(perfectMs, atMs)은 해당 페이즈(진행부는 해당 회차) 시작 기준 상대값.",
+  "$comment": "스키마로 표현할 수 없는 규칙(검증기 담당): (1) totalDurationMs = intro.durationMs + progression.durationMs × repeat.default + throw.durationMs (2) 각 페이즈 perfect ≤ good ≤ bad (early/late 각각) (3) perfectMs - bad.early ≥ 0, perfectMs + bad.late ≤ durationMs (4) atMs < durationMs (5) repeat.min ≤ repeat.default ≤ repeat.max (6) ukemi.thresholds.perfect > ukemi.thresholds.good (7) 낙법 결과마다 uke 큐 1개 이상 (8) points.perfect ≥ good ≥ bad ≥ miss, points.perfect > 0",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "totalDurationMs", "phases", "scoring", "ukemi"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "기술 고유 ID (파일명과 동일 권장)" },
+    "name": { "type": "string", "minLength": 1, "description": "표시용 이름" },
+    "description": { "type": "string" },
+    "totalDurationMs": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "기술 전체 시간 = 도입부 + 진행부 × repeat.default + 던지기. 낙법 연출은 결과별 길이가 달라 제외. 런타임에 N이 바뀌면 엔진이 다시 계산한다."
+    },
+    "input": { "$ref": "#/$defs/inputRules" },
+    "phases": {
+      "description": "고정 순서 3개: [도입부, 진행부, 던지기]",
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/introPhase" },
+        { "$ref": "#/$defs/progressionPhase" },
+        { "$ref": "#/$defs/throwPhase" }
+      ],
+      "items": false,
+      "minItems": 3
+    },
+    "scoring": { "$ref": "#/$defs/scoring" },
+    "ukemi": { "$ref": "#/$defs/ukemiMapping" }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "ms": { "type": "integer", "minimum": 0 },
+    "actor": {
+      "enum": ["tori", "uke", "fx"],
+      "description": "tori = 플레이어, uke = 상대, fx = 이펙트 레이어"
+    },
+    "sequenceKey": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "애니메이션 시퀀스의 시작 Key (예: tori.irimi_enter). 프레임 정보는 에셋 매니페스트가 담당하고, 이 스키마는 '언제 어떤 시퀀스를 시작하는가'만 기술한다."
+    },
+
+    "windowTier": {
+      "description": "퍼펙트 타이밍 기준 허용 오차(ms). 숫자 = 앞뒤 대칭, 객체 = early(일찍)/late(늦게) 비대칭",
+      "oneOf": [
+        { "$ref": "#/$defs/ms" },
+        {
+          "type": "object",
+          "required": ["early", "late"],
+          "properties": { "early": { "$ref": "#/$defs/ms" }, "late": { "$ref": "#/$defs/ms" } },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "judgeWindow": {
+      "description": "오차 d = 입력시각 - 퍼펙트시각. 판정은 가장 좁은 구간부터 |d| ≤ perfect → Perfect, ≤ good → Good, ≤ bad → Bad (경계 포함, d<0 은 early 값, d≥0 은 late 값). bad 구간이 닫힐 때까지 입력이 없으면 Miss.",
+      "type": "object",
+      "required": ["perfect", "good", "bad"],
+      "properties": {
+        "perfect": { "$ref": "#/$defs/windowTier" },
+        "good": { "$ref": "#/$defs/windowTier" },
+        "bad": { "$ref": "#/$defs/windowTier" }
+      },
+      "additionalProperties": false
+    },
+
+    "animationCue": {
+      "description": "atMs 시점에 actor 의 애니메이션을 key 시퀀스로 시작. 같은 actor 는 나중에 시작한 시퀀스가 이전 것을 대체한다.",
+      "type": "object",
+      "required": ["atMs", "actor", "key"],
+      "properties": {
+        "atMs": { "$ref": "#/$defs/ms" },
+        "actor": { "$ref": "#/$defs/actor" },
+        "key": { "$ref": "#/$defs/sequenceKey" }
+      },
+      "additionalProperties": false
+    },
+    "cueList": { "type": "array", "items": { "$ref": "#/$defs/animationCue" } },
+
+    "judgeReaction": {
+      "description": "판정 직후 추가로 시작할 시퀀스. cues[].atMs 는 판정 시각 기준(Miss 는 bad 구간 종료 시각 기준).",
+      "type": "object",
+      "required": ["cues"],
+      "properties": {
+        "replaceRemaining": {
+          "type": "boolean",
+          "default": false,
+          "description": "true: 이 반응에 등장하는 actor 의 남은 기본 큐(판정 이후 예정된 animations)를 취소"
+        },
+        "cues": { "$ref": "#/$defs/cueList", "minItems": 1 }
+      },
+      "additionalProperties": false
+    },
+    "judgeReactions": {
+      "type": "object",
+      "properties": {
+        "perfect": { "$ref": "#/$defs/judgeReaction" },
+        "good": { "$ref": "#/$defs/judgeReaction" },
+        "bad": { "$ref": "#/$defs/judgeReaction" },
+        "miss": { "$ref": "#/$defs/judgeReaction" }
+      },
+      "additionalProperties": false
+    },
+
+    "phaseCommon": {
+      "type": "object",
+      "required": ["type", "id", "durationMs", "perfectMs", "window", "animations"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "label": { "type": "string" },
+        "durationMs": { "type": "integer", "minimum": 1, "description": "페이즈 길이 (진행부는 1회분)" },
+        "perfectMs": { "$ref": "#/$defs/ms", "description": "퍼펙트 타이밍 (페이즈 시작 기준)" },
+        "window": { "$ref": "#/$defs/judgeWindow" },
+        "weight": { "type": "number", "exclusiveMinimum": 0, "default": 1, "description": "점수 배율 (진행부는 회차마다 적용)" },
+        "animations": {
+          "$ref": "#/$defs/cueList",
+          "minItems": 1,
+          "description": "기본 타임라인 (퍼펙트 수행 기준 연출). atMs 는 페이즈 시작 기준"
+        },
+        "onJudge": { "$ref": "#/$defs/judgeReactions" }
+      }
+    },
+    "introPhase": {
+      "$ref": "#/$defs/phaseCommon",
+      "properties": { "type": { "const": "intro" } },
+      "unevaluatedProperties": false
+    },
+    "progressionPhase": {
+      "$ref": "#/$defs/phaseCommon",
+      "required": ["repeat"],
+      "properties": {
+        "type": { "const": "progression" },
+        "repeat": {
+          "description": "반복 횟수 N. 기본 default, 엔진/난이도가 min~max 범위에서 바꿀 수 있음. 회차마다 같은 타이밍·큐를 재사용",
+          "type": "object",
+          "required": ["min", "max", "default"],
+          "properties": {
+            "min": { "type": "integer", "minimum": 1 },
+            "max": { "type": "integer", "minimum": 1 },
+            "default": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "throwPhase": {
+      "$ref": "#/$defs/phaseCommon",
+      "properties": { "type": { "const": "throw" } },
+      "unevaluatedProperties": false
+    },
+
+    "inputRules": {
+      "type": "object",
+      "properties": {
+        "lockoutMs": {
+          "$ref": "#/$defs/ms",
+          "default": 0,
+          "description": "판정 구간 밖에서 누르면 이 시간 동안 입력 무시 (연타 방지)"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "scoring": {
+      "type": "object",
+      "required": ["points"],
+      "properties": {
+        "points": {
+          "description": "판정 1회당 기본 점수. 획득 점수 = points[등급] × weight",
+          "type": "object",
+          "required": ["perfect", "good", "bad", "miss"],
+          "properties": {
+            "perfect": { "type": "integer", "minimum": 1 },
+            "good": { "type": "integer", "minimum": 0 },
+            "bad": { "type": "integer", "minimum": 0 },
+            "miss": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ukemiResult": {
+      "type": "object",
+      "required": ["durationMs", "animations"],
+      "properties": {
+        "label": { "type": "string" },
+        "durationMs": { "type": "integer", "minimum": 1 },
+        "animations": { "$ref": "#/$defs/cueList", "minItems": 1, "description": "atMs 는 낙법 시작(던지기 종료) 기준" }
+      },
+      "additionalProperties": false
+    },
+    "ukemiMapping": {
+      "description": "누적 점수 비율 r = 획득 점수 / 만점 (실제 플레이한 N 기준). r ≥ perfect → Perfect, r ≥ good → Good, 그 외 → Bad. 비율을 쓰므로 N 이 바뀌어도 기준이 유지된다.",
+      "type": "object",
+      "required": ["thresholds", "results"],
+      "properties": {
+        "thresholds": {
+          "type": "object",
+          "required": ["perfect", "good"],
+          "properties": {
+            "perfect": { "type": "number", "minimum": 0, "maximum": 1 },
+            "good": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "results": {
+          "type": "object",
+          "required": ["perfect", "good", "bad"],
+          "properties": {
+            "perfect": { "$ref": "#/$defs/ukemiResult" },
+            "good": { "$ref": "#/$defs/ukemiResult" },
+            "bad": { "$ref": "#/$defs/ukemiResult" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

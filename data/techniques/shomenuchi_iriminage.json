@@ -1,0 +1,122 @@
+{
+  "$schema": "../../schema/technique.schema.json",
+  "schemaVersion": 1,
+  "id": "shomenuchi_iriminage",
+  "name": "정면타 입신던지기",
+  "description": "정면타를 이리미로 맞이하고, 텐칸으로 N회 이끈 뒤 베어 내리듯 던진다.",
+  "totalDurationMs": 3500,
+  "input": { "lockoutMs": 150 },
+
+  "phases": [
+    {
+      "type": "intro",
+      "id": "irimi",
+      "label": "도입 — 정면타에 맞춰 이리미",
+      "durationMs": 900,
+      "perfectMs": 600,
+      "window": {
+        "perfect": 50,
+        "good": 100,
+        "bad": { "early": 180, "late": 150 }
+      },
+      "weight": 1,
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.kamae" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.shomen_windup" },
+        { "atMs": 450, "actor": "uke",  "key": "uke.shomen_strike" },
+        { "atMs": 600, "actor": "tori", "key": "tori.irimi_enter" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.musubi_flash" }] },
+        "good":    { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.contact_soft" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.irimi_stagger" }] },
+        "miss":    {
+          "replaceRemaining": true,
+          "cues": [
+            { "atMs": 0, "actor": "tori", "key": "tori.hit_head" },
+            { "atMs": 0, "actor": "fx",   "key": "fx.hit_spark" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "progression",
+      "id": "tenkan_lead",
+      "label": "진행 — 텐칸으로 이끌기",
+      "durationMs": 600,
+      "perfectMs": 400,
+      "window": { "perfect": 40, "good": 80, "bad": 130 },
+      "weight": 1,
+      "repeat": { "min": 1, "max": 5, "default": 3 },
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.tenkan_lead" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.drawn_spiral" },
+        { "atMs": 400, "actor": "uke",  "key": "uke.off_balance" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.kuzushi_ring" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "uke", "key": "uke.resist" }] },
+        "miss":    { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "uke", "key": "uke.recover" }] }
+      }
+    },
+    {
+      "type": "throw",
+      "id": "cut_down",
+      "label": "던지기 — 베어 내리기",
+      "durationMs": 800,
+      "perfectMs": 500,
+      "window": {
+        "perfect": 50,
+        "good": 100,
+        "bad": { "early": 200, "late": 150 }
+      },
+      "weight": 2,
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.throw_windup" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.lifted" },
+        { "atMs": 500, "actor": "tori", "key": "tori.throw_cut" },
+        { "atMs": 500, "actor": "uke",  "key": "uke.thrown" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.impact_flash" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.throw_weak" }] },
+        "miss":    { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.throw_miss" }] }
+      }
+    }
+  ],
+
+  "scoring": {
+    "points": { "perfect": 100, "good": 60, "bad": 20, "miss": 0 }
+  },
+
+  "ukemi": {
+    "thresholds": { "perfect": 0.85, "good": 0.55 },
+    "results": {
+      "perfect": {
+        "label": "깨끗한 후방낙법",
+        "durationMs": 900,
+        "animations": [
+          { "atMs": 0, "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0, "actor": "uke",  "key": "uke.ukemi_back_roll" }
+        ]
+      },
+      "good": {
+        "label": "흐트러진 낙법",
+        "durationMs": 900,
+        "animations": [
+          { "atMs": 0, "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0, "actor": "uke",  "key": "uke.ukemi_sloppy" }
+        ]
+      },
+      "bad": {
+        "label": "낙법 실패 — 처박힘",
+        "durationMs": 1100,
+        "animations": [
+          { "atMs": 0,   "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0,   "actor": "uke",  "key": "uke.ukemi_crash" },
+          { "atMs": 300, "actor": "fx",   "key": "fx.dust" }
+        ]
+      }
+    }
+  }
+}
