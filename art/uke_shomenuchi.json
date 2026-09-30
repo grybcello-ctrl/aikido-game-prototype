@@ -60,6 +60,14 @@
     "n": {
       "color": "#17171c",
       "label": "하카마 깊은 그림자"
+    },
+    "Z": {
+      "color": "#d9c9a3",
+      "label": "조리 바닥 (짚)"
+    },
+    "z": {
+      "color": "#a8946b",
+      "label": "조리 바닥 그림자"
     }
   },
   "outputs": [
@@ -75,21 +83,21 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....................................KKKKKK......................",
-    "................................KKKKKHHHHKKKK.......KKKKK.......",
-    "...............................KKHHHHHHHHHHHKK....KKKSSSKK......",
-    "..............................KKHHHHHHHHHHHHHKK..KKWWKSSSKK.....",
-    ".............................KKHHHHHHHHHHHHHHHK..KWWWWKSSSK.....",
-    ".............................KHHHHHHhhHHHHKKKKK.KKWwWWKsSSKK....",
-    "............................KKHHhhhhHHHHHKSSSSK.KWwWWWKSsSSK....",
-    "...........................KKHhhHHHHHHHHKSjjjjKKKWwWWWWKKKKK....",
-    "..........................KKHHHHHHhhHHHKSSSEESSKWwWWWWWKSsSKK...",
-    "........................KKKHHHHhhhHHHHHKSSSSSSSKwWWWWWKKSSSSK...",
-    "........................KHHhhhhhhHHHHHKSSSSSSSsKwWWWWKKKSSSSK...",
-    "........................KKjhhhhhhhhhhhKstSSSSSSKWWWWWK.KSSSSK...",
-    ".........................KKKjjhhhhhhhKSSsSSSSSKWWWWWWK.KSsSSK...",
-    "..........................KhjjjjhhhhKSSSSSSSEEKWWWWwKK.KSsSSK...",
-    "..........................KKKKKKjhhKSSSSSSSSSKWWWWwwK..KKsSKK...",
+    "................................................................",
+    "......................................KKKKK.........KKKKK.......",
+    "...................................KKKKHHHKKKK....KKKSSSKK......",
+    "..................................KKhhhHHHHHHKK..KKWWKSSSKK.....",
+    "..................................KhhhhHHHHHHHK..KWWWWKSSSK.....",
+    ".................................KKhhhHHHHKKKKK.KKWwWWKsSSKK....",
+    ".................................KhhHHHHHKSSSSK.KWwWWWKSsSSK....",
+    ".................................KjjHHHHKSjjjjKKKWwWWWWKKKKK....",
+    ".................................KjhHHHKSSSEESSKWwWWWWWKSsSKK...",
+    ".................................KjjHHHKSSSSSSSKwWWWWWKKSSSSK...",
+    ".................................KjjHHKSSSSSSSsKwWWWWKKKSSSSK...",
+    ".................................KjjhhKstSSSSSSKWWWWWK.KSSSSK...",
+    ".................................KKjjKSSsSSSSSKWWWWWWK.KSsSSK...",
+    "..................................KjKSSSSSSSEEKWWWWwKK.KSsSSK...",
+    "..................................KKSSSSSSSSSKWWWWwwK..KKsSKK...",
     "..............................KKKKKSSSsssSSSKWWWWwwWK...KsSK....",
     ".............................KKWWWWWWSSSSssKWWWWWwwKK...KKKK....",
     "............................KKwwWWWWWWWWWWKsWWWWwwwK............",
@@ -131,8 +139,8 @@
     "....KKBBBBBBBBBbBBBnnnK........KKnnnBBBBBBBbnBBBbnBBBBK.........",
     "....KBBBKKBBBBBBBBnnnKK........KnnBKKBBBBBBbnBBBBbnBKKKK........",
     "....KKKKKKBBBKKKKKKKKK.........KKKKKKBBBBKKKBBBBBSSSSSSKK.......",
-    "...KKSSSSSSKKK......................KKBKKK.KKSSSSSSSSSSSKK......",
-    "...KsSSSSSSsK........................KKK...KSssssssssssssK......",
+    "...KKSSSSnSKKK......................KKBKKK.KKSSSSSSSSnSSKK......",
+    "...KzZZZZZZzK........................KKK...KzZZZZZZZZZZZzK......",
     "...KKKKKKKKKK..............................KKKKKKKKKKKKKKK......",
     "................................................................",
     "................................................................"
