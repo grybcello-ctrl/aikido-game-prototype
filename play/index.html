@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 <title>Aikido One-Button — aikido-game-prototype 0.1.0</title>
-<!-- 자동 생성 파일: npm run build:single (직접 수정하지 말 것) -->
+<!-- 자동 생성 파일: npm run build:single (직접 수정하지 말 것). 소스: src/ -->
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" />
 <style>
-  html, body { margin: 0; height: 100%; background: #050507; overflow: hidden; touch-action: none; }
+  html, body { margin: 0; height: 100%; background: #050507; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
   #game { width: 100vw; height: 100vh; }
   canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 </style>
@@ -118,8 +118,17 @@
     name: "편손잡기 사방던지기",
     description: "손목을 잡으러 오는 순간 텐칸으로 맞이하고, 팔을 N회 들어 올려 기울인 뒤 사방으로 베어 던진다.",
     totalDurationMs: 3100,
-    input: { lockoutMs: 150 },
-    spacing: { startPx: 88, moveMs: 120, slackPx: { good: 6, bad: 14 } },
+    input: {
+      lockoutMs: 150
+    },
+    spacing: {
+      startPx: 52,
+      moveMs: 120,
+      slackPx: {
+        good: 4,
+        bad: 10
+      }
+    },
     phases: [
       {
         type: "intro",
@@ -127,7 +136,14 @@
         label: "도입 — 잡으러 오는 손을 텐칸으로 맞이",
         durationMs: 900,
         perfectMs: 550,
-        window: { perfect: 50, good: 100, bad: { early: 160, late: 150 } },
+        window: {
+          perfect: 50,
+          good: 100,
+          bad: {
+            early: 160,
+            late: 150
+          }
+        },
         weight: 1,
         animations: [
           { atMs: 0, actor: "tori", key: "tori.kamae" },
@@ -136,12 +152,33 @@
           { atMs: 550, actor: "tori", key: "tori.tenkan_turn" }
         ],
         onJudge: {
-          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.musubi_flash" }] },
-          good: { cues: [{ atMs: 0, actor: "fx", key: "fx.contact_soft" }] },
-          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.irimi_stagger" }] },
-          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.grab_stuck" }] }
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.musubi_flash" }
+            ]
+          },
+          good: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.contact_soft" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.irimi_stagger" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.grab_stuck" }
+            ]
+          }
         },
-        spacing: { targetPx: 40, anchor: "center" }
+        spacing: {
+          targetPx: 36,
+          anchor: "center"
+        }
       },
       {
         type: "progression",
@@ -149,20 +186,45 @@
         label: "진행 — 팔을 들어 올려 기울이기",
         durationMs: 700,
         perfectMs: 450,
-        window: { perfect: 45, good: 90, bad: 140 },
+        window: {
+          perfect: 45,
+          good: 90,
+          bad: 140
+        },
         weight: 1,
-        repeat: { min: 1, max: 4, default: 2 },
+        repeat: {
+          min: 1,
+          max: 4,
+          default: 2
+        },
         animations: [
           { atMs: 0, actor: "tori", key: "tori.raise_arm" },
           { atMs: 0, actor: "uke", key: "uke.twisted" },
           { atMs: 450, actor: "uke", key: "uke.off_balance" }
         ],
         onJudge: {
-          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.kuzushi_ring" }] },
-          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "uke", key: "uke.resist" }] },
-          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "uke", key: "uke.recover" }] }
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.kuzushi_ring" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "uke", key: "uke.resist" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "uke", key: "uke.recover" }
+            ]
+          }
         },
-        spacing: { deltaPx: -4, anchor: "tori" }
+        spacing: {
+          deltaPx: -3,
+          anchor: "tori"
+        }
       },
       {
         type: "throw",
@@ -170,7 +232,14 @@
         label: "던지기 — 사방으로 베어 내리기",
         durationMs: 800,
         perfectMs: 450,
-        window: { perfect: 50, good: 100, bad: { early: 180, late: 160 } },
+        window: {
+          perfect: 50,
+          good: 100,
+          bad: {
+            early: 180,
+            late: 160
+          }
+        },
         weight: 2,
         animations: [
           { atMs: 0, actor: "tori", key: "tori.throw_windup" },
@@ -179,23 +248,52 @@
           { atMs: 450, actor: "uke", key: "uke.thrown_back" }
         ],
         onJudge: {
-          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.impact_flash" }] },
-          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.throw_weak" }] },
-          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.throw_miss" }] }
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.impact_flash" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.throw_weak" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.throw_miss" }
+            ]
+          }
         },
-        spacing: { targetPx: 24, anchor: "tori", moveMs: 90 }
+        spacing: {
+          targetPx: 20,
+          anchor: "tori",
+          moveMs: 90
+        }
       }
     ],
     scoring: {
-      points: { perfect: 100, good: 60, bad: 20, miss: 0 }
+      points: {
+        perfect: 100,
+        good: 60,
+        bad: 20,
+        miss: 0
+      }
     },
     failure: {
-      abortOnMiss: ["intro", "throw"],
+      abortOnMiss: [
+        "intro",
+        "throw"
+      ],
       maxConsecutiveMiss: 2,
       failOnNoInput: true
     },
     ukemi: {
-      thresholds: { perfect: 0.85, good: 0.55 },
+      thresholds: {
+        perfect: 0.85,
+        good: 0.55
+      },
       results: {
         perfect: {
           label: "깨끗한 후방낙법",
@@ -204,7 +302,11 @@
             { atMs: 0, actor: "tori", key: "tori.zanshin" },
             { atMs: 0, actor: "uke", key: "uke.ukemi_back_roll" }
           ],
-          spacing: { targetPx: 80, anchor: "uke", moveMs: 360 }
+          spacing: {
+            targetPx: 80,
+            anchor: "uke",
+            moveMs: 360
+          }
         },
         good: {
           label: "흐트러진 낙법",
@@ -213,7 +315,11 @@
             { atMs: 0, actor: "tori", key: "tori.zanshin" },
             { atMs: 0, actor: "uke", key: "uke.ukemi_sloppy" }
           ],
-          spacing: { targetPx: 66, anchor: "uke", moveMs: 300 }
+          spacing: {
+            targetPx: 66,
+            anchor: "uke",
+            moveMs: 300
+          }
         },
         bad: {
           label: "낙법 실패 — 처박힘",
@@ -223,7 +329,11 @@
             { atMs: 0, actor: "uke", key: "uke.ukemi_crash" },
             { atMs: 300, actor: "fx", key: "fx.dust" }
           ],
-          spacing: { targetPx: 48, anchor: "uke", moveMs: 200 }
+          spacing: {
+            targetPx: 48,
+            anchor: "uke",
+            moveMs: 200
+          }
         }
       }
     }
@@ -241,11 +351,11 @@
       lockoutMs: 150
     },
     spacing: {
-      startPx: 96,
+      startPx: 56,
       moveMs: 120,
       slackPx: {
-        good: 6,
-        bad: 14
+        good: 4,
+        bad: 10
       }
     },
     phases: [
@@ -296,7 +406,7 @@
           }
         },
         spacing: {
-          targetPx: 44,
+          targetPx: 40,
           anchor: "tori"
         }
       },
@@ -342,7 +452,7 @@
           }
         },
         spacing: {
-          deltaPx: -4,
+          deltaPx: -3,
           anchor: "center"
         }
       },
@@ -387,7 +497,7 @@
           }
         },
         spacing: {
-          targetPx: 28,
+          targetPx: 22,
           anchor: "tori",
           moveMs: 90
         }
@@ -1308,22 +1418,22 @@
     stuck: [J({ lean: 5, arm: 10 }), J({ lean: -10, arm: 10, crouch: 4 })]
   };
   var TORI_PALETTE = {
-    gi: "#f2efe6",
-    giShade: "#c9c3b3",
-    hakama: "#1f2b4d",
-    belt: "#1f2b4d",
+    gi: "#4f8ef7",
+    giShade: "#2358c9",
+    hakama: "#1b2f73",
+    belt: "#0e1a45",
     skin: "#e0b48a",
-    hair: "#2a1d15",
-    outline: "#0b0b10"
+    hair: "#1a1410",
+    outline: "#07070c"
   };
   var UKE_PALETTE = {
-    gi: "#e6e1d6",
-    giShade: "#b9b2a2",
-    hakama: "#3b1d1d",
-    belt: "#b3282d",
+    gi: "#ef4b4b",
+    giShade: "#b82424",
+    hakama: "#6b1717",
+    belt: "#3a0909",
     skin: "#d9a57a",
     hair: "#15110f",
-    outline: "#0b0b10"
+    outline: "#07070c"
   };
   var lerp = (a, b, t) => a + (b - a) * t;
   var lerpJoint = (a, b, t) => ({
@@ -1744,7 +1854,86 @@
     }
   };
 
+  // src/ui/PixelButton.ts
+  var COLORS = {
+    base: 1710628,
+    hover: 2763322,
+    down: 3947606,
+    selected: 2375790,
+    border: 6052984,
+    borderSel: 8235263,
+    highlight: 3816016,
+    text: "#e6e6f0"
+  };
+  var PixelButton = class extends phaser_global_default.GameObjects.Container {
+    constructor(scene, x, y, text, opts) {
+      super(scene, Math.round(x), Math.round(y));
+      __publicField(this, "bg");
+      __publicField(this, "label");
+      __publicField(this, "bw");
+      __publicField(this, "bh");
+      __publicField(this, "hover", false);
+      __publicField(this, "down", false);
+      __publicField(this, "selected", false);
+      this.bw = opts.width;
+      this.bh = opts.height ?? 18;
+      this.bg = scene.add.graphics();
+      this.label = scene.add.text(0, 0, text, {
+        fontFamily: FONT_FAMILY,
+        fontSize: `${opts.fontSize ?? 10}px`,
+        color: COLORS.text
+      }).setOrigin(0.5);
+      this.add([this.bg, this.label]);
+      this.setSize(this.bw, this.bh);
+      this.setInteractive({ useHandCursor: true });
+      this.on("pointerover", () => {
+        this.hover = true;
+        this.redraw();
+      });
+      this.on("pointerout", () => {
+        this.hover = false;
+        this.down = false;
+        this.redraw();
+      });
+      this.on("pointerdown", () => {
+        this.down = true;
+        this.redraw();
+        opts.onClick();
+      });
+      this.on("pointerup", () => {
+        this.down = false;
+        this.redraw();
+      });
+      scene.add.existing(this);
+      this.redraw();
+    }
+    setLabel(text) {
+      this.label.setText(text);
+      return this;
+    }
+    setSelected(on) {
+      this.selected = on;
+      this.redraw();
+      return this;
+    }
+    redraw() {
+      const w = this.bw;
+      const h = this.bh;
+      const x = -Math.floor(w / 2);
+      const y = -Math.floor(h / 2);
+      const fill = this.down ? COLORS.down : this.hover ? COLORS.hover : this.selected ? COLORS.selected : COLORS.base;
+      this.bg.clear();
+      this.bg.fillStyle(0, 0.6).fillRect(x + 1, y + 2, w, h);
+      this.bg.fillStyle(fill).fillRect(x, y, w, h);
+      this.bg.fillStyle(COLORS.highlight).fillRect(x + 1, y + 1, w - 2, 1);
+      this.bg.lineStyle(1, this.selected ? COLORS.borderSel : COLORS.border).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      this.label.setY(this.down ? 1 : 0);
+    }
+  };
+
   // src/game/modes.ts
+  var SPEEDS = [0.5, 1, 1.5];
+  var DEFAULT_SPEED_INDEX = 1;
   var MODES = {
     /** 수련: 역경직·흔들림 없이 물 흐르듯. 실패 없이 기술을 순서대로 이어서 반복 */
     flow: {
@@ -1760,8 +1949,7 @@
       selection: "cycle",
       progression: "default",
       autoNextMs: 500,
-      lives: null,
-      speeds: [1]
+      lives: null
     },
     /** 게임: SF3 블로킹 — Perfect 순간 화면 정지 + 셰이크 + 파티클. 실패 규칙·목숨 적용 */
     arcade: {
@@ -1777,14 +1965,13 @@
       selection: "random",
       progression: "random",
       autoNextMs: 900,
-      lives: 3,
-      speeds: [1]
+      lives: 3
     },
     /** 연습: 선택한 기술만 반복. 타이밍 링 + 배속 조절 */
     practice: {
       id: "practice",
       label: "연습",
-      tagline: "PRACTICE — 한 기술 반복 · ←→ 기술 · ↑↓ 진행 횟수 · T 배속",
+      tagline: "PRACTICE — 한 기술 반복 · ←→ 기술 · ↑↓ 진행 횟수",
       failure: null,
       hitstop: null,
       shake: null,
@@ -1794,14 +1981,115 @@
       selection: "fixed",
       progression: "selected",
       autoNextMs: 700,
-      lives: null,
-      speeds: [1, 0.5, 0.25]
+      lives: null
+    }
+  };
+
+  // src/game/TitleScene.ts
+  var MANIFEST = animations_default;
+  var MODE_REGISTRY_KEY = "aikido.mode";
+  var MODE_ORDER = ["flow", "arcade", "practice"];
+  var TitleScene = class extends phaser_global_default.Scene {
+    constructor() {
+      super("title");
+      __publicField(this, "starting", false);
+      __publicField(this, "mode", "flow");
+      __publicField(this, "modeButtons", {});
+      __publicField(this, "tagline");
+    }
+    create() {
+      this.starting = false;
+      this.mode = this.registry.get(MODE_REGISTRY_KEY) ?? "flow";
+      new AnimRegistry(this, MANIFEST).build();
+      this.cameras.main.setBackgroundColor(855314).fadeIn(200, 0, 0, 0);
+      this.drawBackdrop();
+      this.drawIllustration();
+      const font = (size, color = "#e6e6f0") => ({ fontFamily: FONT_FAMILY, fontSize: `${size}px`, color, stroke: "#000000", strokeThickness: 3 });
+      this.add.text(GAME_WIDTH / 2, 24, "AIKIDO ONE-BUTTON", { ...font(20), fontStyle: "bold" }).setOrigin(0.5);
+      this.add.text(GAME_WIDTH / 2, 44, "아이키도 원버튼 — 마아이와 무스비", font(10, "#9aa0b8")).setOrigin(0.5);
+      const start = this.add.text(GAME_WIDTH / 2, 258, "Touch to Start", { ...font(16, "#fff4c2"), fontStyle: "bold" }).setOrigin(0.5);
+      let visible = true;
+      this.time.addEvent({
+        loop: true,
+        delay: 300,
+        callback: /* @__PURE__ */ (() => {
+          let tick = 0;
+          return () => {
+            tick = (tick + 1) % 3;
+            visible = tick !== 0;
+            start.setVisible(visible);
+          };
+        })()
+      });
+      MODE_ORDER.forEach((id, i) => {
+        this.modeButtons[id] = new PixelButton(this, GAME_WIDTH / 2 + (i - 1) * 76, 292, MODES[id].label, {
+          width: 68,
+          height: 20,
+          fontSize: 11,
+          onClick: () => this.selectMode(id)
+        });
+      });
+      this.tagline = this.add.text(GAME_WIDTH / 2, 314, "", font(9, "#9aa0b8")).setOrigin(0.5);
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "Space · Enter · 터치 = 시작     1 2 3 = 모드", font(9, "#6c6c80")).setOrigin(0.5);
+      this.selectMode(this.mode);
+      this.input.on("pointerdown", (_p, over) => {
+        if (!over.length) this.startGame();
+      });
+      const kb = this.input.keyboard;
+      kb?.on("keydown-SPACE", () => this.startGame());
+      kb?.on("keydown-ENTER", () => this.startGame());
+      kb?.on("keydown-ONE", () => this.selectMode("flow"));
+      kb?.on("keydown-TWO", () => this.selectMode("arcade"));
+      kb?.on("keydown-THREE", () => this.selectMode("practice"));
+    }
+    selectMode(id) {
+      this.mode = id;
+      this.registry.set(MODE_REGISTRY_KEY, id);
+      for (const m of MODE_ORDER) this.modeButtons[m]?.setSelected(m === id);
+      this.tagline.setText(MODES[id].tagline);
+    }
+    startGame() {
+      if (this.starting) return;
+      this.starting = true;
+      this.cameras.main.flash(80, 255, 255, 255);
+      this.cameras.main.fadeOut(220, 0, 0, 0);
+      this.cameras.main.once(phaser_global_default.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start("game", { mode: this.mode }));
+    }
+    drawBackdrop() {
+      const g = this.add.graphics();
+      const bands = [855314, 1118490, 1381664, 1710631];
+      bands.forEach((c, i) => g.fillStyle(c).fillRect(0, 60 + i * 40, GAME_WIDTH, 40));
+      g.fillStyle(1710631).fillRect(0, 220, GAME_WIDTH, GAME_HEIGHT - 220);
+    }
+    /** 중앙 일러스트: 더미 사각형 패널 + 두 캐릭터가 붙어 선 던지기 장면 */
+    drawIllustration() {
+      const px = GAME_WIDTH / 2 - 130;
+      const py = 60;
+      const pw = 260;
+      const ph = 172;
+      const g = this.add.graphics();
+      g.fillStyle(0, 0.6).fillRect(px + 3, py + 4, pw, ph);
+      g.fillStyle(2761267).fillRect(px, py, pw, ph);
+      [3812677, 4863056, 6044757, 7226708].forEach((c, i) => g.fillStyle(c).fillRect(px + 4, py + 4 + i * 22, pw - 8, 22));
+      g.fillStyle(15909997);
+      for (let dy = -18; dy <= 18; dy += 2) {
+        const half = Math.round(Math.sqrt(18 * 18 - dy * dy));
+        g.fillRect(px + pw - 70 - half, py + 50 + dy, half * 2, 2);
+      }
+      g.fillStyle(4938284).fillRect(px + 4, py + 124, pw - 8, ph - 128);
+      g.fillStyle(6122807);
+      for (let x = px + 4; x < px + pw - 4; x += 32) g.fillRect(x, py + 124, 1, ph - 128);
+      g.fillStyle(1777680).fillRect(px + 4, py + 124, pw - 8, 1);
+      g.lineStyle(2, 9075290).strokeRect(px + 1, py + 1, pw - 2, ph - 2);
+      const floor = py + 150;
+      this.add.sprite(GAME_WIDTH / 2 - 26, floor, "ph:tori.throw_cut", 3).setOrigin(0.5, 1).setScale(2);
+      this.add.sprite(GAME_WIDTH / 2 + 30, floor, "ph:uke.thrown", 2).setOrigin(0.5, 1).setScale(2).setFlipX(true);
     }
   };
 
   // src/game/GameScene.ts
   var RAW_TECHNIQUES = [shomenuchi_iriminage_default, katatedori_shihonage_default];
-  var MANIFEST = animations_default;
+  var MANIFEST2 = animations_default;
   var GRADE_TEXT = { perfect: "PERFECT", good: "GOOD", bad: "BAD", miss: "MISS" };
   var GRADE_COLOR = { perfect: 8255999, good: 10216804, bad: 16757575, miss: 16734815 };
   var UKEMI_COLOR = { perfect: 8255999, good: 16765286, bad: 16734815 };
@@ -1813,37 +2101,41 @@
     aborted: "중단"
   };
   var CHEST_Y = FLOOR_Y - 38;
+  var READY_MS = 800;
   var hex = (c) => `#${c.toString(16).padStart(6, "0")}`;
+  var speedLabel = (s) => `Speed ${s}x`;
   var UI_STRINGS = [
     "수련",
     "게임",
     "연습",
-    "Space / 터치",
-    "로 시작",
-    "다음 기술",
     "목숨",
     "점수",
     "콤보",
     "진행",
-    "배속",
     "기술",
+    "라운드",
+    "마아이",
+    "낙법",
     "타이밍을 놓쳤다",
     "흐름이 끊겼다",
     "입력 없음",
     "중단",
     "게임 오버",
     "다시 시작",
-    "낙법",
-    "라운드",
-    "1 수련 · 2 게임 · 3 연습",
-    "←→ 기술 · ↑↓ 진행 횟수 · T 배속",
     "데이터 오류",
+    "아이키도 원버튼 — 마아이와 무스비",
+    "Space · Enter · 터치 = 시작     1 2 3 = 모드",
+    "Space / 터치 = 입력",
+    "R 리셋 · H 메인 · T 배속 · 1 2 3 모드",
+    "←→ 기술 · ↑↓ 진행 횟수",
+    "터치 / Space 로 다시 시작",
     "·",
     "—",
     "×",
     "♥",
     "♡",
     "─",
+    "›",
     ...Object.values(MODES).flatMap((m) => [m.label, m.tagline])
   ];
   var GameScene = class extends phaser_global_default.Scene {
@@ -1854,17 +2146,18 @@
       __publicField(this, "techniques", []);
       __publicField(this, "dataErrors", []);
       __publicField(this, "mode", MODES.flow);
-      __publicField(this, "state", "title");
+      __publicField(this, "state", "ready");
       __publicField(this, "engine", null);
       __publicField(this, "tech");
       __publicField(this, "techIndex", 0);
       __publicField(this, "practiceN", null);
-      __publicField(this, "speedIdx", 0);
+      __publicField(this, "speedIdx", DEFAULT_SPEED_INDEX);
       /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
       __publicField(this, "roundStart", 0);
       __publicField(this, "nextAt", null);
       __publicField(this, "run", { score: 0, rounds: 0, lives: 0, combo: 0, maxCombo: 0 });
       __publicField(this, "lastResult", null);
+      __publicField(this, "leaving", false);
       __publicField(this, "spacing");
       __publicField(this, "tori");
       __publicField(this, "uke");
@@ -1880,13 +2173,26 @@
       __publicField(this, "subText");
       __publicField(this, "overlay");
       __publicField(this, "overlayBg");
-      __publicField(this, "unbindInput", null);
+      __publicField(this, "speedBtn");
+      __publicField(this, "cleanups", []);
+    }
+    init(data) {
+      const id = data?.mode ?? this.registry.get(MODE_REGISTRY_KEY) ?? "flow";
+      this.mode = MODES[id] ?? MODES.flow;
+      this.leaving = false;
+      this.techniques = [];
+      this.dataErrors = [];
+      this.cleanups = [];
+      this.engine = null;
+      this.nextAt = null;
+      this.lastResult = null;
+      this.speedIdx = DEFAULT_SPEED_INDEX;
     }
     // ───────────────────────────── setup ─────────────────────────────
     create() {
       this.clock = new GameClock(this.game.loop.now);
       this.loadTechniques();
-      this.seqs = new AnimRegistry(this, MANIFEST).build();
+      this.seqs = new AnimRegistry(this, MANIFEST2).build();
       this.makeParticleTexture();
       this.drawDojo();
       this.tori = this.add.sprite(0, FLOOR_Y, "__DEFAULT").setOrigin(0.5, 1).setDepth(10);
@@ -1905,33 +2211,60 @@
       }).setDepth(40);
       this.cueG = this.add.graphics().setDepth(35);
       const font = (size, color = "#e6e6e6") => ({ fontFamily: FONT_FAMILY, fontSize: `${size}px`, color, stroke: "#000000", strokeThickness: 3 });
-      this.hudLeft = this.add.text(8, 6, "", font(10)).setDepth(50);
+      this.hudLeft = this.add.text(8, 26, "", font(10)).setDepth(50);
       this.hudRight = this.add.text(GAME_WIDTH - 8, 6, "", { ...font(10), align: "right" }).setOrigin(1, 0).setDepth(50);
       this.help = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "", font(9, "#9a9aa6")).setOrigin(0.5).setDepth(50);
       this.judgeText = this.add.text(GAME_WIDTH / 2, 92, "", { ...font(22), fontStyle: "bold" }).setOrigin(0.5).setDepth(60).setAlpha(0);
       this.subText = this.add.text(GAME_WIDTH / 2, 114, "", font(10)).setOrigin(0.5).setDepth(60).setAlpha(0);
       this.overlayBg = this.add.graphics().setDepth(70);
       this.overlay = this.add.text(GAME_WIDTH / 2, 150, "", { ...font(12), align: "center", lineSpacing: 6 }).setOrigin(0.5).setDepth(71);
-      this.unbindInput = bindOneButton(window, (t) => this.onPress(t));
-      this.events.once(phaser_global_default.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
+      const btnY = 13;
+      new PixelButton(this, 8 + 26, btnY, "Reset", { width: 52, onClick: () => this.reset() }).setDepth(80);
+      new PixelButton(this, 8 + 52 + 6 + 26, btnY, "Home", { width: 52, onClick: () => this.goHome() }).setDepth(80);
+      this.speedBtn = new PixelButton(this, 8 + 52 + 6 + 52 + 6 + 38, btnY, speedLabel(SPEEDS[this.speedIdx] ?? 1), {
+        width: 76,
+        onClick: () => this.cycleSpeed()
+      }).setDepth(80);
+      this.cleanups.push(bindOneButton(window, (t) => this.onPress(t), { pointer: false }));
+      this.input.on("pointerdown", (p, over) => {
+        if (over.length) return;
+        this.onPress(p.event?.timeStamp ?? performance.now());
+      });
       const kb = this.input.keyboard;
-      kb?.on("keydown-ONE", () => this.setMode("flow"));
-      kb?.on("keydown-TWO", () => this.setMode("arcade"));
-      kb?.on("keydown-THREE", () => this.setMode("practice"));
+      kb?.on("keydown-ONE", () => this.switchMode("flow"));
+      kb?.on("keydown-TWO", () => this.switchMode("arcade"));
+      kb?.on("keydown-THREE", () => this.switchMode("practice"));
       kb?.on("keydown-LEFT", () => this.practiceSelect(-1, 0));
       kb?.on("keydown-RIGHT", () => this.practiceSelect(1, 0));
       kb?.on("keydown-UP", () => this.practiceSelect(0, 1));
       kb?.on("keydown-DOWN", () => this.practiceSelect(0, -1));
       kb?.on("keydown-T", () => this.cycleSpeed());
-      this.game.events.on(phaser_global_default.Core.Events.HIDDEN, () => this.clock.pause(performance.now()));
-      this.game.events.on(phaser_global_default.Core.Events.VISIBLE, () => this.clock.resume(performance.now()));
+      kb?.on("keydown-R", () => this.reset());
+      kb?.on("keydown-H", () => this.goHome());
+      kb?.on("keydown-ESC", () => this.goHome());
+      const onHidden = () => this.clock.pause(performance.now());
+      const onVisible = () => this.clock.resume(performance.now());
+      this.game.events.on(phaser_global_default.Core.Events.HIDDEN, onHidden);
+      this.game.events.on(phaser_global_default.Core.Events.VISIBLE, onVisible);
+      this.cleanups.push(() => {
+        this.game.events.off(phaser_global_default.Core.Events.HIDDEN, onHidden);
+        this.game.events.off(phaser_global_default.Core.Events.VISIBLE, onVisible);
+      });
+      this.events.once(phaser_global_default.Scenes.Events.SHUTDOWN, () => {
+        this.cleanups.forEach((f) => f());
+        this.cleanups = [];
+        this.fx.clear();
+      });
       window.__aikido = this;
+      this.cameras.main.fadeIn(200, 0, 0, 0);
       if (!this.techniques.length) {
+        this.state = "gameover";
         this.showOverlay(["데이터 오류", ...this.dataErrors.slice(0, 6)], 16734815);
         return;
       }
-      this.tech = this.techniques[0];
-      this.setMode("flow");
+      this.techIndex = Math.min(this.techIndex, this.techniques.length - 1);
+      this.tech = this.techniques[this.techIndex];
+      this.beginRun();
     }
     loadTechniques() {
       for (const raw of RAW_TECHNIQUES) {
@@ -1975,27 +2308,43 @@
       return this.clock.toVirtual(this.realNow()) - this.roundStart;
     }
     // ───────────────────────────── flow control ─────────────────────────────
-    setMode(id) {
-      if (!this.techniques.length) return;
-      this.mode = MODES[id];
+    /** 새 판 시작: 점수·목숨 초기화 → READY 표시 → 첫 라운드 */
+    beginRun() {
       this.engine = null;
-      this.nextAt = null;
-      this.speedIdx = 0;
-      this.clock.setRate(1, this.realNow());
-      this.tweens.timeScale = 1;
-      this.state = "title";
-      this.techIndex = Math.min(this.techIndex, this.techniques.length - 1);
-      this.tech = this.techniques[this.techIndex];
+      this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
+      this.lastResult = null;
+      this.tech = this.pickTechnique(false);
       this.resetStage();
+      this.state = "ready";
+      this.nextAt = this.local() + READY_MS;
       const n = this.pickN(this.tech);
       this.showOverlay([
-        `${this.mode.label}`,
-        this.mode.tagline,
+        `[${this.mode.label}]  ${this.mode.tagline}`,
         "",
-        this.mode.selection === "fixed" ? `${this.tech.name}  (진행 ×${n})` : this.techniques.map((t) => t.name).join(" · "),
+        `${this.tech.name}   진행 ×${n}`,
         "",
-        "Space / 터치 로 시작"
+        "READY"
       ]);
+    }
+    /** Reset 버튼: 현재 모드를 처음부터 */
+    reset() {
+      if (this.leaving || !this.techniques.length) return;
+      this.cameras.main.flash(60, 255, 255, 255);
+      this.beginRun();
+    }
+    /** Home 버튼: 타이틀로 */
+    goHome() {
+      if (this.leaving) return;
+      this.leaving = true;
+      this.engine = null;
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once(phaser_global_default.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start("title"));
+    }
+    switchMode(id) {
+      if (this.leaving || !this.techniques.length) return;
+      this.mode = MODES[id];
+      this.registry.set(MODE_REGISTRY_KEY, id);
+      this.beginRun();
     }
     resetStage() {
       this.roundStart = this.clock.toVirtual(this.realNow());
@@ -2006,22 +2355,18 @@
       this.ukeAnim.play("uke.kamae", 0);
     }
     onPress(realT) {
+      if (this.leaving) return;
       switch (this.state) {
-        case "title":
-        case "gameover":
-          this.startRun();
-          break;
         case "playing":
           this.engine?.press(this.clock.toVirtual(realT));
           break;
+        case "gameover":
+          if (this.techniques.length) this.beginRun();
+          break;
+        case "ready":
         case "between":
           break;
       }
-    }
-    startRun() {
-      this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
-      this.hideOverlay();
-      this.startRound(false);
     }
     pickTechnique(advance) {
       const n = this.techniques.length;
@@ -2035,22 +2380,23 @@
       if (this.mode.progression === "selected") return phaser_global_default.Math.Clamp(this.practiceN ?? d, min, max);
       return d;
     }
+    /** @param advance true = 모드 규칙에 따라 다음 기술로 (첫 라운드는 beginRun 에서 고른 기술 유지) */
     startRound(advance) {
-      this.tech = this.pickTechnique(advance);
+      if (advance) this.tech = this.pickTechnique(true);
       const n = this.pickN(this.tech);
       this.engine = new TimingEngine(this.tech, {
         progressionCount: n,
         ...this.mode.failure ? { failure: this.mode.failure } : {},
         onListenerError: (e) => console.error(e)
       });
+      this.hideOverlay();
       this.resetStage();
       this.nextAt = null;
       this.state = "playing";
-      this.cameras.main.fadeIn(160, 0, 0, 0);
       this.handle(this.engine.start(this.roundStart));
     }
     practiceSelect(dTech, dN) {
-      if (this.mode.id !== "practice" || this.state === "playing") return;
+      if (this.mode.id !== "practice" || this.leaving) return;
       const len = this.techniques.length;
       if (dTech) {
         this.techIndex = (this.techIndex + dTech + len) % len;
@@ -2061,15 +2407,15 @@
         const { min, max, default: d } = t.phases[1].repeat;
         this.practiceN = phaser_global_default.Math.Clamp((this.practiceN ?? d) + dN, min, max);
       }
-      this.setMode("practice");
+      this.beginRun();
     }
+    /** Speed 버튼: 0.5x → 1x → 1.5x. 판정·애니메이션·거리 이동 모두 같은 가상시계를 따른다 */
     cycleSpeed() {
-      const speeds = this.mode.speeds;
-      if (speeds.length < 2) return;
-      this.speedIdx = (this.speedIdx + 1) % speeds.length;
-      const s = speeds[this.speedIdx];
+      this.speedIdx = (this.speedIdx + 1) % SPEEDS.length;
+      const s = SPEEDS[this.speedIdx];
       this.clock.setRate(s, this.realNow());
       this.tweens.timeScale = s;
+      this.speedBtn.setLabel(speedLabel(s));
     }
     // ───────────────────────────── engine events ─────────────────────────────
     handle(events) {
@@ -2145,7 +2491,7 @@
           "",
           `점수 ${r.score}   ·   ${r.rounds} 라운드   ·   최대 콤보 ${r.maxCombo}`,
           "",
-          "Space / 터치 로 다시 시작"
+          "터치 / Space 로 다시 시작"
         ], 16734815);
         return;
       }
@@ -2185,18 +2531,21 @@
     }
     // ───────────────────────────── frame ─────────────────────────────
     update() {
-      if (!this.techniques.length) return;
+      if (!this.techniques.length || this.leaving) return;
       if (this.engine) this.handle(this.engine.update(this.clock.toVirtual(this.realNow())));
       const now = this.local();
-      if (this.state === "between" && this.nextAt !== null && now >= this.nextAt) this.startRound(true);
-      const nowAfter = this.local();
-      this.toriAnim.update(nowAfter);
-      this.ukeAnim.update(nowAfter);
-      this.fx.update(nowAfter);
-      const pos = this.spacing.positions(nowAfter);
+      if (this.nextAt !== null && now >= this.nextAt) {
+        if (this.state === "ready") this.startRound(false);
+        else if (this.state === "between") this.startRound(true);
+      }
+      const t = this.local();
+      this.toriAnim.update(t);
+      this.ukeAnim.update(t);
+      this.fx.update(t);
+      const pos = this.spacing.positions(t);
       this.tori.setX(pos.toriX);
       this.uke.setX(pos.ukeX);
-      this.drawTimingCue(nowAfter, pos);
+      this.drawTimingCue(t, pos);
       this.drawHud(pos.distance);
     }
     /** 수련·연습: 다음 판정의 퍼펙트 시각을 향해 줄어드는 링 */
@@ -2225,18 +2574,19 @@
       const live = this.engine?.getState();
       const playing = !!live && this.state === "playing";
       if (m.id === "arcade") parts.push(`점수 ${r.score + (playing ? live.score.raw : 0)}`, `콤보 ${r.combo}`);
-      if (m.speeds.length > 1) parts.push(`배속 ×${m.speeds[this.speedIdx]}`);
       if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
       this.hudLeft.setText(parts.join("   "));
       const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
       this.hudRight.setText(`${this.tech.name}
 진행 ×${n}   마아이 ${distance}px`);
-      this.help.setText(m.id === "practice" ? "1 수련 · 2 게임 · 3 연습   |   ←→ 기술 · ↑↓ 진행 횟수 · T 배속" : "1 수련 · 2 게임 · 3 연습   |   Space / 터치");
+      const extra = m.id === "practice" ? "   |   ←→ 기술 · ↑↓ 진행 횟수" : "";
+      this.help.setText(`Space / 터치 = 입력   |   R 리셋 · H 메인 · T 배속 · 1 2 3 모드${extra}`);
     }
     /** 자동화 테스트·콘솔 디버그용 스냅샷 */
     debugSnapshot() {
       const pos = this.spacing?.positions(this.local());
       return {
+        scene: "game",
         mode: this.mode.id,
         state: this.state,
         technique: this.tech?.id,
@@ -2260,7 +2610,7 @@
   // src/main.ts
   var boot = async () => {
     await loadFonts(glyphsIn(JSON.stringify(RAW_TECHNIQUES), ...UI_STRINGS));
-    const game = new phaser_global_default.Game(createGameConfig([GameScene], "game"));
+    const game = new phaser_global_default.Game(createGameConfig([TitleScene, GameScene], "game"));
     installIntegerZoom(game);
   };
   void boot();

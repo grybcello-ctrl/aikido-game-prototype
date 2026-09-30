@@ -31,9 +31,11 @@ export interface ModeRules {
   autoNextMs: number;
   /** 목숨 (실패 시 -1). null = 무제한 */
   lives: number | null;
-  /** 선택 가능한 배속 */
-  speeds: number[];
 }
+
+/** 상단 배속 버튼 순환값 (모든 모드 공통) */
+export const SPEEDS = [0.5, 1, 1.5] as const;
+export const DEFAULT_SPEED_INDEX = 1;
 
 export const MODES: Record<ModeId, ModeRules> = {
   /** 수련: 역경직·흔들림 없이 물 흐르듯. 실패 없이 기술을 순서대로 이어서 반복 */
@@ -51,7 +53,6 @@ export const MODES: Record<ModeId, ModeRules> = {
     progression: 'default',
     autoNextMs: 500,
     lives: null,
-    speeds: [1],
   },
   /** 게임: SF3 블로킹 — Perfect 순간 화면 정지 + 셰이크 + 파티클. 실패 규칙·목숨 적용 */
   arcade: {
@@ -68,13 +69,12 @@ export const MODES: Record<ModeId, ModeRules> = {
     progression: 'random',
     autoNextMs: 900,
     lives: 3,
-    speeds: [1],
   },
   /** 연습: 선택한 기술만 반복. 타이밍 링 + 배속 조절 */
   practice: {
     id: 'practice',
     label: '연습',
-    tagline: 'PRACTICE — 한 기술 반복 · ←→ 기술 · ↑↓ 진행 횟수 · T 배속',
+    tagline: 'PRACTICE — 한 기술 반복 · ←→ 기술 · ↑↓ 진행 횟수',
     failure: null,
     hitstop: null,
     shake: null,
@@ -85,6 +85,5 @@ export const MODES: Record<ModeId, ModeRules> = {
     progression: 'selected',
     autoNextMs: 700,
     lives: null,
-    speeds: [1, 0.5, 0.25],
   },
 };

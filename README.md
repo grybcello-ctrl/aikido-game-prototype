@@ -2,18 +2,24 @@
 
 JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수정 없이 **도입부 → 진행부(1~N회) → 던지기 → 낙법** 으로 이어지는 아이키도 기술이 추가되는 원버튼 타이밍 게임 (Phaser 3).
 
-현재 단계: **Task 3 — GameScene · 3가지 모드 · 애니메이션 컨트롤러**
+현재 단계: **Task 4 — 타이틀·씬 전환·UI 통합, 단일 파일 실행**
 
 ## 실행
 
-- 바로 플레이: `play/index.html` 을 받아 브라우저로 열기 (인터넷 필요: Phaser·폰트 CDN)
+- **바로 플레이 (인터넷 O)**: `play/index.html` 을 받아 더블클릭 — Phaser·한글 웹폰트만 CDN
+- **완전 오프라인**: `play/index.offline.html` — Phaser 까지 파일 하나에 포함 (폰트는 시스템 한글 폰트)
 - 개발 서버: `npm install && npm run dev` → http://localhost:5173
 
-| 키 | 동작 |
+씬 흐름: **Title**(Touch to Start · 모드 선택) → **Game**(READY → 라운드 반복) → Home 버튼으로 Title
+
+| 입력 | 동작 |
 |---|---|
-| `Space` / 터치 / 클릭 | 원버튼 입력 (타이틀에서는 시작) |
+| `Space` / 화면 터치·클릭 | 원버튼 입력 (타이틀에서는 시작). 상단 버튼 위 터치는 입력으로 치지 않음 |
+| 상단 `Reset` / `R` | 현재 모드를 처음부터 |
+| 상단 `Home` / `H` · `Esc` | 타이틀로 |
+| 상단 `Speed` / `T` | 배속 0.5x → 1x → 1.5x (판정·애니메이션·거리 이동이 같은 시계를 따름) |
 | `1` `2` `3` | 수련 · 게임 · 연습 모드 |
-| `←` `→` / `↑` `↓` / `T` | (연습) 기술 선택 / 진행 횟수 N / 배속 1·0.5·0.25 |
+| `←` `→` / `↑` `↓` | (연습) 기술 선택 / 진행 횟수 N |
 
 ## 모드
 
@@ -34,7 +40,8 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 | `schema/*.schema.json` | 위 두 데이터의 JSON Schema |
 | `src/engine/` | `TimingEngine` 등 판정 코어 (Phaser 비의존) |
 | `src/render/` | `GameClock`(배속·히트스톱) · `AnimRegistry` · `AnimationController` · `FxLayer` · `Spacing`(거리) · 플레이스홀더 픽셀 아트 |
-| `src/game/` | `GameScene` · 모드 룰 · 폰트 |
+| `src/game/` | `TitleScene` · `GameScene` · 모드 룰 · 폰트 |
+| `src/ui/` | `PixelButton` (Graphics + Text 픽셀 버튼) |
 | `src/config/` | 640×360 Pixel-perfect 설정, 리미티드 애니메이션(10~12fps) 정책 |
 
 ## 설계 요점
@@ -44,11 +51,12 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 - **시작 Key 재생**: 엔진 `cue` 이벤트(`atMs`, `actor`, `key`) → `AnimationController.play(key, atMs)`. 매니페스트에 없는 Key 는 경고 후 마젠타 대체 시퀀스로 계속 진행
 - **거리 좁히기**: 기술 JSON 의 `spacing` — 판정 순간(플레이어 입력 시각)에 목표 거리로 이동. Perfect 는 목표 그대로, Good/Bad 는 `slackPx` 만큼 덜 좁히고, Miss 는 이동 없음(수련 모드는 이동). 낙법 시작 시 우케가 날아가는 거리도 데이터로
 - **히트스톱**: `GameClock.freeze()` 가 가상시간을 멈춤 → 엔진 판정·애니메이션·거리 이동이 함께 정지, 파티클·셰이크는 실시간. 입력 타임스탬프도 같은 시계로 변환하므로 판정 ms 가 어긋나지 않음
+- **캐릭터**: 토리 = 파랑, 우케 = 빨강 플레이스홀더. 두 캐릭터가 근접(52~56px)한 상태에서 시작
 - **아트 교체**: `animations.json` 에 `atlas: { texture, prefix }` 를 넣고 텍스처를 로드하면 플레이스홀더 대신 실제 스프라이트 사용
 
 ```bash
 npm run validate      # 스키마 + 의미 규칙 + 시퀀스 Key 교차 검사 + N별 타임라인
 npm run typecheck
-npm run build:single  # play/index.html 재생성
+npm run build:single  # play/index.html + play/index.offline.html 재생성
 npm run build         # vite 빌드 (dist/)
 ```

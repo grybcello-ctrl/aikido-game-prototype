@@ -14,11 +14,14 @@ import { FxLayer } from '../render/FxLayer';
 import { Spacing } from '../render/Spacing';
 import type { AnimationManifest } from '../types/animations';
 import type { Grade, Phase, PhaseType, TechniqueData, UkemiGrade } from '../types/technique';
+import { PixelButton } from '../ui/PixelButton';
 import { FONT_FAMILY } from './fonts';
-import { MODES, type ModeId, type ModeRules } from './modes';
+import { DEFAULT_SPEED_INDEX, MODES, SPEEDS, type ModeId, type ModeRules } from './modes';
+import { MODE_REGISTRY_KEY } from './TitleScene';
 
 type Ev<T extends EngineEvent['type']> = Extract<EngineEvent, { type: T }>;
-type SceneState = 'title' | 'playing' | 'between' | 'gameover';
+/** ready = 라운드 시작 전 준비 표시, between = 다음 라운드 대기 */
+type SceneState = 'ready' | 'playing' | 'between' | 'gameover';
 
 /** 로드 시 검증 통과한 기술만 사용 (잘못된 파일은 경고 후 제외) */
 export const RAW_TECHNIQUES: unknown[] = [shomenuchiIriminage, katatedoriShihonage];
@@ -35,21 +38,28 @@ const FAIL_TEXT: Record<FailReason['type'], string> = {
   aborted: '중단',
 };
 const CHEST_Y = FLOOR_Y - 38;
+/** 라운드 시작 전 READY 표시 시간 (가상 ms) */
+const READY_MS = 800;
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
+const speedLabel = (s: number) => `Speed ${s}x`;
 
 /** HUD 에 쓰는 문자열 (웹폰트 글리프 사전 로드용) */
 export const UI_STRINGS = [
-  '수련', '게임', '연습', 'Space / 터치', '로 시작', '다음 기술', '목숨', '점수', '콤보', '진행', '배속', '기술',
-  '타이밍을 놓쳤다', '흐름이 끊겼다', '입력 없음', '중단', '게임 오버', '다시 시작', '낙법',
-  '라운드', '1 수련 · 2 게임 · 3 연습', '←→ 기술 · ↑↓ 진행 횟수 · T 배속', '데이터 오류', '·', '—', '×', '♥', '♡', '─',
+  '수련', '게임', '연습', '목숨', '점수', '콤보', '진행', '기술', '라운드', '마아이', '낙법',
+  '타이밍을 놓쳤다', '흐름이 끊겼다', '입력 없음', '중단', '게임 오버', '다시 시작', '데이터 오류',
+  '아이키도 원버튼 — 마아이와 무스비', 'Space · Enter · 터치 = 시작     1 2 3 = 모드',
+  'Space / 터치 = 입력', 'R 리셋 · H 메인 · T 배속 · 1 2 3 모드', '←→ 기술 · ↑↓ 진행 횟수',
+  '터치 / Space 로 다시 시작', '·', '—', '×', '♥', '♡', '─', '›',
   ...Object.values(MODES).flatMap((m) => [m.label, m.tagline]),
 ];
 
 /**
  * GameScene — TimingEngine 을 화면에 연결하고 3가지 모드 룰을 적용한다.
  *
+ * 씬 흐름: TitleScene ─(터치)→ GameScene[ready → playing → between → … | gameover] ─(Home)→ TitleScene
+ *
  * 시간 흐름: 실시간 → GameClock(배속·히트스톱) → 가상시간 → TimingEngine / 애니메이션 / 거리
- *   (입력 타임스탬프도 같은 GameClock 으로 변환 → 히트스톱 중에도 판정 ms 정확)
+ *   (입력 타임스탬프도 같은 GameClock 으로 변환 → 히트스톱·배속 중에도 판정 ms 정확)
  *
  * 엔진 이벤트 → 연출
  *   cue(tori|uke) → AnimationController.play(key, atMs)   (시작 Key → 10~12fps 묵직한 재생)
@@ -57,6 +67,8 @@ export const UI_STRINGS = [
  *   judge         → Spacing.onJudge (판정 순간 거리 좁히기) + 모드별 피드백
  *   ukemi         → Spacing.onUkemi (우케가 날아감) + 결과 표시
  *   fail/finish   → 모드별 다음 라운드 / 목숨 / 게임 오버
+ *
+ * 입력: 키보드 Space (bindOneButton) + 화면 터치 (UI 버튼 위를 누른 경우는 제외)
  */
 export class GameScene extends Phaser.Scene {
   private clock!: GameClock;
@@ -65,17 +77,18 @@ export class GameScene extends Phaser.Scene {
   private dataErrors: string[] = [];
 
   private mode: ModeRules = MODES.flow;
-  private state: SceneState = 'title';
+  private state: SceneState = 'ready';
   private engine: TimingEngine | null = null;
   private tech!: TechniqueData;
   private techIndex = 0;
   private practiceN: number | null = null;
-  private speedIdx = 0;
+  private speedIdx: number = DEFAULT_SPEED_INDEX;
   /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
   private roundStart = 0;
   private nextAt: number | null = null;
   private run = { score: 0, rounds: 0, lives: 0, combo: 0, maxCombo: 0 };
   private lastResult: EngineResult | null = null;
+  private leaving = false;
 
   private spacing!: Spacing;
   private tori!: Phaser.GameObjects.Sprite;
@@ -92,10 +105,24 @@ export class GameScene extends Phaser.Scene {
   private subText!: Phaser.GameObjects.Text;
   private overlay!: Phaser.GameObjects.Text;
   private overlayBg!: Phaser.GameObjects.Graphics;
-  private unbindInput: (() => void) | null = null;
+  private speedBtn!: PixelButton;
+  private cleanups: (() => void)[] = [];
 
   constructor() {
     super('game');
+  }
+
+  init(data: { mode?: ModeId }): void {
+    const id = data?.mode ?? (this.registry.get(MODE_REGISTRY_KEY) as ModeId | undefined) ?? 'flow';
+    this.mode = MODES[id] ?? MODES.flow;
+    this.leaving = false;
+    this.techniques = [];
+    this.dataErrors = [];
+    this.cleanups = [];
+    this.engine = null;
+    this.nextAt = null;
+    this.lastResult = null;
+    this.speedIdx = DEFAULT_SPEED_INDEX;
   }
 
   // ───────────────────────────── setup ─────────────────────────────
@@ -124,7 +151,7 @@ export class GameScene extends Phaser.Scene {
     this.cueG = this.add.graphics().setDepth(35);
 
     const font = (size: number, color = '#e6e6e6') => ({ fontFamily: FONT_FAMILY, fontSize: `${size}px`, color, stroke: '#000000', strokeThickness: 3 });
-    this.hudLeft = this.add.text(8, 6, '', font(10)).setDepth(50);
+    this.hudLeft = this.add.text(8, 26, '', font(10)).setDepth(50);
     this.hudRight = this.add.text(GAME_WIDTH - 8, 6, '', { ...font(10), align: 'right' }).setOrigin(1, 0).setDepth(50);
     this.help = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, '', font(9, '#9a9aa6')).setOrigin(0.5).setDepth(50);
     this.judgeText = this.add.text(GAME_WIDTH / 2, 92, '', { ...font(22), fontStyle: 'bold' }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -132,32 +159,61 @@ export class GameScene extends Phaser.Scene {
     this.overlayBg = this.add.graphics().setDepth(70);
     this.overlay = this.add.text(GAME_WIDTH / 2, 150, '', { ...font(12), align: 'center', lineSpacing: 6 }).setOrigin(0.5).setDepth(71);
 
-    // 원버튼: 스페이스바 + 터치/마우스. 이벤트 시각을 가상시간으로 변환해 엔진에 전달
-    this.unbindInput = bindOneButton(window, (t) => this.onPress(t));
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
+    // 상단 UI 버튼: Reset / Home / Speed
+    const btnY = 13;
+    new PixelButton(this, 8 + 26, btnY, 'Reset', { width: 52, onClick: () => this.reset() }).setDepth(80);
+    new PixelButton(this, 8 + 52 + 6 + 26, btnY, 'Home', { width: 52, onClick: () => this.goHome() }).setDepth(80);
+    this.speedBtn = new PixelButton(this, 8 + 52 + 6 + 52 + 6 + 38, btnY, speedLabel(SPEEDS[this.speedIdx] ?? 1), {
+      width: 76, onClick: () => this.cycleSpeed(),
+    }).setDepth(80);
+
+    // 원버튼 입력 ① 키보드 Space — 이벤트 시각을 가상시간으로 변환해 엔진에 전달
+    this.cleanups.push(bindOneButton(window, (t) => this.onPress(t), { pointer: false }));
+    // ② 화면 터치/클릭 — UI 버튼 위를 누른 경우는 버튼 동작만
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+      if (over.length) return;
+      this.onPress(p.event?.timeStamp ?? performance.now());
+    });
 
     const kb = this.input.keyboard;
-    kb?.on('keydown-ONE', () => this.setMode('flow'));
-    kb?.on('keydown-TWO', () => this.setMode('arcade'));
-    kb?.on('keydown-THREE', () => this.setMode('practice'));
+    kb?.on('keydown-ONE', () => this.switchMode('flow'));
+    kb?.on('keydown-TWO', () => this.switchMode('arcade'));
+    kb?.on('keydown-THREE', () => this.switchMode('practice'));
     kb?.on('keydown-LEFT', () => this.practiceSelect(-1, 0));
     kb?.on('keydown-RIGHT', () => this.practiceSelect(1, 0));
     kb?.on('keydown-UP', () => this.practiceSelect(0, 1));
     kb?.on('keydown-DOWN', () => this.practiceSelect(0, -1));
     kb?.on('keydown-T', () => this.cycleSpeed());
+    kb?.on('keydown-R', () => this.reset());
+    kb?.on('keydown-H', () => this.goHome());
+    kb?.on('keydown-ESC', () => this.goHome());
 
-    // 탭 비활성화 동안 게임 시계 정지 (복귀 시 판정 구간이 한꺼번에 Miss 로 지나가는 것 방지)
-    this.game.events.on(Phaser.Core.Events.HIDDEN, () => this.clock.pause(performance.now()));
-    this.game.events.on(Phaser.Core.Events.VISIBLE, () => this.clock.resume(performance.now()));
+    // 탭 비활성화 동안 게임 시계 정지. 씬 종료 시 전역 리스너 해제 (재진입 시 중복 방지)
+    const onHidden = () => this.clock.pause(performance.now());
+    const onVisible = () => this.clock.resume(performance.now());
+    this.game.events.on(Phaser.Core.Events.HIDDEN, onHidden);
+    this.game.events.on(Phaser.Core.Events.VISIBLE, onVisible);
+    this.cleanups.push(() => {
+      this.game.events.off(Phaser.Core.Events.HIDDEN, onHidden);
+      this.game.events.off(Phaser.Core.Events.VISIBLE, onVisible);
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.cleanups.forEach((f) => f());
+      this.cleanups = [];
+      this.fx.clear();
+    });
 
     (window as unknown as { __aikido?: GameScene }).__aikido = this;
+    this.cameras.main.fadeIn(200, 0, 0, 0);
 
     if (!this.techniques.length) {
+      this.state = 'gameover';
       this.showOverlay(['데이터 오류', ...this.dataErrors.slice(0, 6)], 0xff5a5f);
       return;
     }
-    this.tech = this.techniques[0] as TechniqueData;
-    this.setMode('flow');
+    this.techIndex = Math.min(this.techIndex, this.techniques.length - 1);
+    this.tech = this.techniques[this.techIndex] as TechniqueData;
+    this.beginRun();
   }
 
   private loadTechniques(): void {
@@ -209,27 +265,46 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────────── flow control ─────────────────────────────
 
-  setMode(id: ModeId): void {
-    if (!this.techniques.length) return;
-    this.mode = MODES[id];
+  /** 새 판 시작: 점수·목숨 초기화 → READY 표시 → 첫 라운드 */
+  private beginRun(): void {
     this.engine = null;
-    this.nextAt = null;
-    this.speedIdx = 0;
-    this.clock.setRate(1, this.realNow());
-    this.tweens.timeScale = 1;
-    this.state = 'title';
-    this.techIndex = Math.min(this.techIndex, this.techniques.length - 1);
-    this.tech = this.techniques[this.techIndex] as TechniqueData;
+    this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
+    this.lastResult = null;
+    this.tech = this.pickTechnique(false);
     this.resetStage();
+    this.state = 'ready';
+    this.nextAt = this.local() + READY_MS;
     const n = this.pickN(this.tech);
     this.showOverlay([
-      `${this.mode.label}`,
-      this.mode.tagline,
+      `[${this.mode.label}]  ${this.mode.tagline}`,
       '',
-      this.mode.selection === 'fixed' ? `${this.tech.name}  (진행 ×${n})` : this.techniques.map((t) => t.name).join(' · '),
+      `${this.tech.name}   진행 ×${n}`,
       '',
-      'Space / 터치 로 시작',
+      'READY',
     ]);
+  }
+
+  /** Reset 버튼: 현재 모드를 처음부터 */
+  private reset(): void {
+    if (this.leaving || !this.techniques.length) return;
+    this.cameras.main.flash(60, 255, 255, 255);
+    this.beginRun();
+  }
+
+  /** Home 버튼: 타이틀로 */
+  private goHome(): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.engine = null;
+    this.cameras.main.fadeOut(200, 0, 0, 0);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('title'));
+  }
+
+  private switchMode(id: ModeId): void {
+    if (this.leaving || !this.techniques.length) return;
+    this.mode = MODES[id];
+    this.registry.set(MODE_REGISTRY_KEY, id);
+    this.beginRun();
   }
 
   private resetStage(): void {
@@ -242,23 +317,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onPress(realT: number): void {
+    if (this.leaving) return;
     switch (this.state) {
-      case 'title':
-      case 'gameover':
-        this.startRun();
-        break;
       case 'playing':
         this.engine?.press(this.clock.toVirtual(realT));
         break;
+      case 'gameover':
+        if (this.techniques.length) this.beginRun();
+        break;
+      case 'ready':
       case 'between':
-        break; // 다음 라운드 준비 중 입력은 무시 (오입력 방지)
+        break; // 라운드 준비 중 입력은 무시 (오입력 방지)
     }
-  }
-
-  private startRun(): void {
-    this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
-    this.hideOverlay();
-    this.startRound(false);
   }
 
   private pickTechnique(advance: boolean): TechniqueData {
@@ -275,23 +345,24 @@ export class GameScene extends Phaser.Scene {
     return d;
   }
 
+  /** @param advance true = 모드 규칙에 따라 다음 기술로 (첫 라운드는 beginRun 에서 고른 기술 유지) */
   private startRound(advance: boolean): void {
-    this.tech = this.pickTechnique(advance);
+    if (advance) this.tech = this.pickTechnique(true);
     const n = this.pickN(this.tech);
     this.engine = new TimingEngine(this.tech, {
       progressionCount: n,
       ...(this.mode.failure ? { failure: this.mode.failure } : {}),
       onListenerError: (e) => console.error(e),
     });
+    this.hideOverlay();
     this.resetStage();
     this.nextAt = null;
     this.state = 'playing';
-    this.cameras.main.fadeIn(160, 0, 0, 0);
     this.handle(this.engine.start(this.roundStart));
   }
 
   private practiceSelect(dTech: number, dN: number): void {
-    if (this.mode.id !== 'practice' || this.state === 'playing') return;
+    if (this.mode.id !== 'practice' || this.leaving) return;
     const len = this.techniques.length;
     if (dTech) {
       this.techIndex = (this.techIndex + dTech + len) % len;
@@ -302,16 +373,16 @@ export class GameScene extends Phaser.Scene {
       const { min, max, default: d } = t.phases[1].repeat;
       this.practiceN = Phaser.Math.Clamp((this.practiceN ?? d) + dN, min, max);
     }
-    this.setMode('practice');
+    this.beginRun();
   }
 
+  /** Speed 버튼: 0.5x → 1x → 1.5x. 판정·애니메이션·거리 이동 모두 같은 가상시계를 따른다 */
   private cycleSpeed(): void {
-    const speeds = this.mode.speeds;
-    if (speeds.length < 2) return;
-    this.speedIdx = (this.speedIdx + 1) % speeds.length;
-    const s = speeds[this.speedIdx] as number;
+    this.speedIdx = (this.speedIdx + 1) % SPEEDS.length;
+    const s = SPEEDS[this.speedIdx] as number;
     this.clock.setRate(s, this.realNow());
     this.tweens.timeScale = s;
+    this.speedBtn.setLabel(speedLabel(s));
   }
 
   // ───────────────────────────── engine events ─────────────────────────────
@@ -398,7 +469,7 @@ export class GameScene extends Phaser.Scene {
         '',
         `점수 ${r.score}   ·   ${r.rounds} 라운드   ·   최대 콤보 ${r.maxCombo}`,
         '',
-        'Space / 터치 로 다시 시작',
+        '터치 / Space 로 다시 시작',
       ], 0xff5a5f);
       return;
     }
@@ -446,20 +517,23 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────────── frame ─────────────────────────────
 
   override update(): void {
-    if (!this.techniques.length) return;
+    if (!this.techniques.length || this.leaving) return;
     if (this.engine) this.handle(this.engine.update(this.clock.toVirtual(this.realNow())));
     const now = this.local();
 
-    if (this.state === 'between' && this.nextAt !== null && now >= this.nextAt) this.startRound(true);
+    if (this.nextAt !== null && now >= this.nextAt) {
+      if (this.state === 'ready') this.startRound(false);
+      else if (this.state === 'between') this.startRound(true);
+    }
 
-    const nowAfter = this.local();
-    this.toriAnim.update(nowAfter);
-    this.ukeAnim.update(nowAfter);
-    this.fx.update(nowAfter);
-    const pos = this.spacing.positions(nowAfter);
+    const t = this.local();
+    this.toriAnim.update(t);
+    this.ukeAnim.update(t);
+    this.fx.update(t);
+    const pos = this.spacing.positions(t);
     this.tori.setX(pos.toriX);
     this.uke.setX(pos.ukeX);
-    this.drawTimingCue(nowAfter, pos);
+    this.drawTimingCue(t, pos);
     this.drawHud(pos.distance);
   }
 
@@ -491,19 +565,20 @@ export class GameScene extends Phaser.Scene {
     const playing = !!live && this.state === 'playing';
     // 누적 점수 = 끝난 라운드 합 + 진행 중 라운드 점수 (라운드 도중에도 실시간 반영)
     if (m.id === 'arcade') parts.push(`점수 ${r.score + (playing ? live.score.raw : 0)}`, `콤보 ${r.combo}`);
-    if (m.speeds.length > 1) parts.push(`배속 ×${m.speeds[this.speedIdx]}`);
     if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
     this.hudLeft.setText(parts.join('   '));
 
     const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
     this.hudRight.setText(`${this.tech.name}\n진행 ×${n}   마아이 ${distance}px`);
-    this.help.setText(m.id === 'practice' ? '1 수련 · 2 게임 · 3 연습   |   ←→ 기술 · ↑↓ 진행 횟수 · T 배속' : '1 수련 · 2 게임 · 3 연습   |   Space / 터치');
+    const extra = m.id === 'practice' ? '   |   ←→ 기술 · ↑↓ 진행 횟수' : '';
+    this.help.setText(`Space / 터치 = 입력   |   R 리셋 · H 메인 · T 배속 · 1 2 3 모드${extra}`);
   }
 
   /** 자동화 테스트·콘솔 디버그용 스냅샷 */
   debugSnapshot() {
     const pos = this.spacing?.positions(this.local());
     return {
+      scene: 'game' as const,
       mode: this.mode.id,
       state: this.state,
       technique: this.tech?.id,
