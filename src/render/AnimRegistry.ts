@@ -95,8 +95,14 @@ export class AnimRegistry {
     const pal = key.startsWith('uke.') ? UKE_PALETTE : TORI_PALETTE;
     for (let i = 0; i < n; i++) {
       const t = n === 1 ? 1 : i / (n - 1);
+      // 프레임 영역으로 클립 → 옆 프레임으로 픽셀이 번지지 않음
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(i * w, 0, w, h);
+      ctx.clip();
       if (isFx) drawFx(ctx, pose, t, i * w, 0);
       else drawFigure(ctx, pose, t, pal, i * w, 0);
+      ctx.restore();
       tex.add(i, 0, i * w, 0, w, h);
     }
     tex.refresh();

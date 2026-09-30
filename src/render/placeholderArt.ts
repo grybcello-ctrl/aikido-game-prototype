@@ -6,7 +6,8 @@ import type { PoseHint } from '../types/animations';
  * 모든 좌표는 정수 픽셀 단위로 fillRect → 확대해도 번지지 않는다.
  */
 
-export const CHAR_FRAME = { w: 48, h: 64 } as const;
+/** 팔을 뻗거나 누운 포즈가 잘리지 않도록 가로 여유 */
+export const CHAR_FRAME = { w: 64, h: 64 } as const;
 export const FX_FRAME = { w: 32, h: 32 } as const;
 
 interface Joint {

@@ -427,6 +427,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showOverlay(lines: string[], color = 0xe6e6e6): void {
+    // 판정 팝업이 오버레이 뒤로 비치지 않게
+    this.tweens.killTweensOf([this.judgeText, this.subText]);
+    this.judgeText.setAlpha(0);
+    this.subText.setAlpha(0);
     this.overlay.setText(lines.join('\n')).setColor(hex(color)).setVisible(true);
     const b = this.overlay.getBounds();
     this.overlayBg.clear().fillStyle(0x000000, 0.72).fillRect(Math.round(b.x - 14), Math.round(b.y - 10), Math.round(b.width + 28), Math.round(b.height + 20));

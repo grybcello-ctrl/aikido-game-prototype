@@ -1275,7 +1275,7 @@
   var isFinishedAt = (durations, repeat, elapsedMs) => repeat !== -1 && elapsedMs >= totalOf(durations) * (repeat + 1);
 
   // src/render/placeholderArt.ts
-  var CHAR_FRAME = { w: 48, h: 64 };
+  var CHAR_FRAME = { w: 64, h: 64 };
   var FX_FRAME = { w: 32, h: 32 };
   var J = (p) => ({ lean: 0, arm: 40, reach: 10, crouch: 0, lie: 0, dx: 0, step: 4, ...p });
   var POSES = {
@@ -1516,8 +1516,13 @@
       const pal = key.startsWith("uke.") ? UKE_PALETTE : TORI_PALETTE;
       for (let i = 0; i < n; i++) {
         const t = n === 1 ? 1 : i / (n - 1);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(i * w, 0, w, h);
+        ctx.clip();
         if (isFx) drawFx(ctx, pose, t, i * w, 0);
         else drawFigure(ctx, pose, t, pal, i * w, 0);
+        ctx.restore();
         tex.add(i, 0, i * w, 0, w, h);
       }
       tex.refresh();
@@ -2165,6 +2170,9 @@
       });
     }
     showOverlay(lines, color = 15132390) {
+      this.tweens.killTweensOf([this.judgeText, this.subText]);
+      this.judgeText.setAlpha(0);
+      this.subText.setAlpha(0);
       this.overlay.setText(lines.join("\n")).setColor(hex(color)).setVisible(true);
       const b = this.overlay.getBounds();
       this.overlayBg.clear().fillStyle(0, 0.72).fillRect(Math.round(b.x - 14), Math.round(b.y - 10), Math.round(b.width + 28), Math.round(b.height + 20));
