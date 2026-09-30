@@ -24,7 +24,7 @@ export class AnimationController {
     this.seq = s;
     this.startAt = atMs;
     this.shown = -1;
-    this.sprite.setTexture(s.textureKey, s.frames[0]);
+    this.sprite.setTexture(s.textureKey, s.frames[0]).setOrigin(0.5, s.originY);
   }
 
   update(nowMs: number): void {

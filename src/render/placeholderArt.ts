@@ -1,3 +1,4 @@
+import art from '../../art/tori_idle.json';
 import type { PoseHint } from '../types/animations';
 
 /**
@@ -6,8 +7,8 @@ import type { PoseHint } from '../types/animations';
  * 모든 좌표는 정수 픽셀 단위로 fillRect → 확대해도 번지지 않는다.
  */
 
-/** 팔을 뻗거나 누운 포즈가 잘리지 않도록 가로 여유 */
-export const CHAR_FRAME = { w: 64, h: 64 } as const;
+/** 팔을 뻗거나 누운 포즈(낙법)가 잘리지 않도록 가로 여유. 높이는 SVG 픽셀 아트와 같은 64 */
+export const CHAR_FRAME = { w: 96, h: 64 } as const;
 export const FX_FRAME = { w: 32, h: 32 } as const;
 
 interface Joint {
@@ -60,15 +61,21 @@ const POSES: Record<Exclude<PoseHint, `fx_${string}`>, [Joint, Joint]> = {
   stuck: [J({ lean: 5, arm: 10 }), J({ lean: -10, arm: 10, crouch: 4 })],
 };
 
-export interface Palette { gi: string; giShade: string; hakama: string; belt: string; skin: string; hair: string; outline: string }
-/** 토리(플레이어) = 파랑 */
+export interface Palette {
+  gi: string; giShade: string; hakama: string; belt: string; skin: string; hair: string; hairShade: string; outline: string;
+  /** 적 하이라이트: 외곽선 바깥 2px 링 (오버워치 적군 표시) */
+  highlight?: string;
+}
+
+/** 64x64 픽셀 아트(art/tori_idle.json)와 같은 팔레트 → 대기 포즈 ↔ 동작 포즈 전환 시 색이 튀지 않음 */
+const P = art.palette;
+/** 토리(플레이어): 은발 · 흰 도복 · 검은 하카마 · 짙은 회흑 외곽선 */
 export const TORI_PALETTE: Palette = {
-  gi: '#4f8ef7', giShade: '#2358c9', hakama: '#1b2f73', belt: '#0e1a45', skin: '#e0b48a', hair: '#1a1410', outline: '#07070c',
+  gi: P.W.color, giShade: P.w.color, hakama: P.B.color, belt: P.n.color, skin: P.S.color,
+  hair: P.H.color, hairShade: P.h.color, outline: P.K.color,
 };
-/** 우케(상대) = 빨강 */
-export const UKE_PALETTE: Palette = {
-  gi: '#ef4b4b', giShade: '#b82424', hakama: '#6b1717', belt: '#3a0909', skin: '#d9a57a', hair: '#15110f', outline: '#07070c',
-};
+/** 우케(적): 같은 모습 + 바깥 붉은 외곽선 */
+export const UKE_PALETTE: Palette = { ...TORI_PALETTE, highlight: art.enemyOutline.color };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerpJoint = (a: Joint, b: Joint, t: number): Joint => ({
@@ -127,23 +134,30 @@ export const drawFigure = (ctx: Ctx, pose: PoseHint, t: number, pal: Palette, ox
   const lift = Math.max(0, -Math.min(...pts.map((p) => p.y - 4)));
   const map = (p: Pt): Pt => {
     const r = rot(p);
-    return { x: ox + w / 2 + r.x, y: oy + h - 2 - (r.y + lift) };
+    // 누울수록 몸 중심을 조금 앞으로 → 발 기준 회전해도 머리가 프레임 밖으로 나가지 않음
+    return { x: ox + w / 2 + r.x + j.lie * 10, y: oy + h - 2 - (r.y + lift) };
   };
 
-  // 2패스: 외곽선(+2px) → 채움
-  for (const pass of ['outline', 'fill'] as const) {
-    const o = pass === 'outline' ? 2 : 0;
-    const c = (col: string) => (pass === 'outline' ? pal.outline : col);
+  // 패스: (적) 붉은 하이라이트 +6 → 외곽선 +2 → 채움. 각 패스는 같은 뼈대를 굵기만 달리 그림
+  const passes: { o: number; color: string | null }[] = [
+    ...(pal.highlight ? [{ o: 6, color: pal.highlight }] : []),
+    { o: 2, color: pal.outline },
+    { o: 0, color: null },
+  ];
+  for (const { o, color } of passes) {
+    const c = (col: string) => color ?? col;
     stroke(ctx, shoulder, backHand, 3 + o, c(pal.giShade), map);
     stroke(ctx, hip, back, 6 + o, c(pal.hakama), map);
     stroke(ctx, hip, front, 6 + o, c(pal.hakama), map);
     stroke(ctx, hip, shoulder, 9 + o, c(pal.gi), map);
-    disc(ctx, head, 4 + (o ? 1 : 0), c(pal.skin), map);
+    disc(ctx, head, 4 + Math.ceil(o / 2), c(pal.skin), map);
     stroke(ctx, shoulder, elbow, 4 + o, c(pal.gi), map);
     stroke(ctx, elbow, hand, 3 + o, c(pal.gi), map);
   }
-  // 디테일: 머리카락, 띠, 손, 소매 음영
-  disc(ctx, { x: head.x - Math.sin(L) * 1 - 1, y: head.y + 2 }, 2, pal.hair, map);
+  // 디테일: 은발(뒤통수·정수리), 띠, 손, 소매 음영
+  const back1 = { x: head.x - Math.cos(L) * 1.5 - Math.sin(L) * 0.5, y: head.y + 1 };
+  disc(ctx, back1, 3, pal.hairShade, map);
+  disc(ctx, { x: back1.x + 0.5, y: back1.y + 1 }, 2, pal.hair, map);
   stroke(ctx, { x: hip.x - 3, y: hip.y + 1 }, { x: hip.x + 3, y: hip.y + 1 }, 2, pal.belt, map);
   disc(ctx, hand, 1, pal.skin, map);
   stroke(ctx, { x: shoulder.x - 1, y: shoulder.y - 3 }, { x: hip.x - 2, y: hip.y + 3 }, 2, pal.giShade, map);

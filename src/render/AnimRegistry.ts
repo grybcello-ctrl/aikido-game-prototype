@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { clampAnimFps } from '../config/animation';
 import type { AnimationManifest, PoseHint, SequenceDef } from '../types/animations';
+import { CHARACTER_ORIGIN_Y } from '../art/characterSprites';
 import { buildDurations, totalOf } from './frameTiming';
 import { CHAR_FRAME, FX_FRAME, TORI_PALETTE, UKE_PALETTE, drawFigure, drawFx } from './placeholderArt';
 
@@ -13,14 +14,16 @@ export interface ResolvedSequence {
   durations: number[];
   totalMs: number;
   repeat: number;
-  source: 'atlas' | 'placeholder' | 'missing';
+  /** 발바닥 기준 originY (텍스처마다 발 위치가 다를 수 있음) */
+  originY: number;
+  source: 'image' | 'atlas' | 'placeholder' | 'missing';
 }
 
 const MISSING_TEXTURE = '__seq_missing';
 
 /**
  * 시퀀스 Key → 텍스처·프레임·타이밍.
- * - atlas 가 지정되고 로드돼 있으면 실제 스프라이트, 아니면 pose 힌트로 플레이스홀더 시트를 생성
+ * - image(단일 텍스처, 예: SVG 픽셀 아트 player_idle) → atlas → pose 힌트 플레이스홀더 순으로 해석
  * - 매니페스트에 없는 Key 는 경고 1회 후 마젠타 "missing" 시퀀스로 대체 (게임은 계속)
  * - frameRate 는 10~12fps 로 강제 (범위 밖이면 경고)
  */
@@ -49,7 +52,7 @@ export class AnimRegistry {
     if (s) return s;
     this.warn(key, `시퀀스 Key '${key}' 가 animations.json 에 없음 → missing 대체`);
     const missing: ResolvedSequence = {
-      key, textureKey: MISSING_TEXTURE, frames: [0], frameRate: 10, durations: [100], totalMs: 100, repeat: 0, source: 'missing',
+      key, textureKey: MISSING_TEXTURE, frames: [0], frameRate: 10, durations: [100], totalMs: 100, repeat: 0, originY: 1, source: 'missing',
     };
     this.map.set(key, missing);
     return missing;
@@ -67,7 +70,16 @@ export class AnimRegistry {
     if (fps !== def.frameRate) this.warn(`${key}:fps`, `${key}: frameRate ${def.frameRate} → ${fps} (10~12fps 고정)`);
     const n = Math.max(1, Math.floor(def.frames));
     const durations = buildDurations(fps, n, def.holds);
-    const base = { key, frameRate: fps, durations, totalMs: totalOf(durations), repeat: def.repeat ?? 0 };
+    const base = { key, frameRate: fps, durations, totalMs: totalOf(durations), repeat: def.repeat ?? 0, originY: 1 };
+
+    if (def.image) {
+      // 단일 이미지 (정지 포즈). 로드돼 있지 않으면 플레이스홀더로 폴백
+      if (this.scene.textures.exists(def.image)) {
+        const one = buildDurations(fps, 1);
+        return { ...base, durations: one, totalMs: totalOf(one), textureKey: def.image, frames: ['__BASE'], originY: CHARACTER_ORIGIN_Y, source: 'image' };
+      }
+      this.warn(`${key}:image`, `${key}: 이미지 텍스처 '${def.image}' 가 로드되지 않음 → 플레이스홀더`);
+    }
 
     if (def.atlas) {
       const tex = this.scene.textures.exists(def.atlas.texture) ? this.scene.textures.get(def.atlas.texture) : null;

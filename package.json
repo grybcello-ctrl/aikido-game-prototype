@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:single": "node scripts/build-single.mjs",
+    "build:single": "node scripts/build-sprites.mjs && node scripts/build-single.mjs",
     "typecheck": "tsc --noEmit",
-    "validate": "tsx scripts/validate.ts"
+    "validate": "tsx scripts/validate.ts",
+    "build:sprites": "node scripts/build-sprites.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

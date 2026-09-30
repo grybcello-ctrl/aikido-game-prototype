@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import manifestJson from '../../data/animations.json';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
+import { CHARACTER_TEXTURES, addCharacterSprite, preloadCharacterSprites } from '../art/characterSprites';
 import { AnimRegistry } from '../render/AnimRegistry';
 import type { AnimationManifest } from '../types/animations';
 import { PixelButton } from '../ui/PixelButton';
@@ -25,6 +26,11 @@ export class TitleScene extends Phaser.Scene {
 
   constructor() {
     super('title');
+  }
+
+  /** SVG Data URI → player_idle / enemy_idle 텍스처 */
+  preload(): void {
+    preloadCharacterSprites(this);
   }
 
   create(): void {
@@ -105,26 +111,26 @@ export class TitleScene extends Phaser.Scene {
     const px = GAME_WIDTH / 2 - 130;
     const py = 60;
     const pw = 260;
-    const ph = 172;
+    const ph = 176;
     const g = this.add.graphics();
     g.fillStyle(0x000000, 0.6).fillRect(px + 3, py + 4, pw, ph);
     g.fillStyle(0x2a2233).fillRect(px, py, pw, ph);
     // 하늘 띠 + 원(해) + 바닥 — 전부 사각형 도트
-    [0x3a2d45, 0x4a3450, 0x5c3c55, 0x6e4554].forEach((c, i) => g.fillStyle(c).fillRect(px + 4, py + 4 + i * 22, pw - 8, 22));
+    [0x3a2d45, 0x4a3450, 0x5c3c55, 0x6e4554].forEach((c, i) => g.fillStyle(c).fillRect(px + 4, py + 4 + i * 37, pw - 8, 37));
     g.fillStyle(0xf2c46d);
     for (let dy = -18; dy <= 18; dy += 2) {
       const half = Math.round(Math.sqrt(18 * 18 - dy * dy));
-      g.fillRect(px + pw - 70 - half, py + 50 + dy, half * 2, 2);
+      g.fillRect(px + 44 - half, py + 40 + dy, half * 2, 2); // 해는 캐릭터 머리와 겹치지 않게 왼쪽 위
     }
-    g.fillStyle(0x4b5a2c).fillRect(px + 4, py + 124, pw - 8, ph - 128);
+    g.fillStyle(0x4b5a2c).fillRect(px + 4, py + 150, pw - 8, ph - 154);
     g.fillStyle(0x5d6d37);
-    for (let x = px + 4; x < px + pw - 4; x += 32) g.fillRect(x, py + 124, 1, ph - 128);
-    g.fillStyle(0x1b2010).fillRect(px + 4, py + 124, pw - 8, 1);
+    for (let x = px + 4; x < px + pw - 4; x += 32) g.fillRect(x, py + 150, 1, ph - 154);
+    g.fillStyle(0x1b2010).fillRect(px + 4, py + 150, pw - 8, 1);
     g.lineStyle(2, 0x8a7a5a).strokeRect(px + 1, py + 1, pw - 2, ph - 2);
 
-    // 두 캐릭터 (근접) — 64px 프레임을 ×2 정수 확대
-    const floor = py + 150;
-    this.add.sprite(GAME_WIDTH / 2 - 26, floor, 'ph:tori.throw_cut', 3).setOrigin(0.5, 1).setScale(2);
-    this.add.sprite(GAME_WIDTH / 2 + 30, floor, 'ph:uke.lifted', 3).setOrigin(0.5, 1).setScale(2).setFlipX(true);
+    // 두 캐릭터 (근접, 자연체로 마주 봄) — 64x64 픽셀 아트를 ×2 정수 확대
+    const floor = py + 162;
+    addCharacterSprite(this, GAME_WIDTH / 2 - 40, floor, CHARACTER_TEXTURES.player, 2);
+    addCharacterSprite(this, GAME_WIDTH / 2 + 40, floor, CHARACTER_TEXTURES.enemy, 2).setFlipX(true);
   }
 }

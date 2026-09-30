@@ -42,6 +42,11 @@
             "fx_flash", "fx_soft", "fx_spark", "fx_ring", "fx_dust"
           ]
         },
+        "image": {
+          "description": "단일 이미지 텍스처 키 (예: SVG 픽셀 아트 'player_idle'). 로드돼 있으면 atlas·pose 보다 우선, frames 는 1로 취급",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
         "atlas": {
           "description": "실제 스프라이트: 텍스처 아틀라스 키 + 프레임명 접두사 (예: prefix 'irimi_' → irimi_00..)",
           "type": "object",

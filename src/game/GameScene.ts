@@ -3,6 +3,7 @@ import manifestJson from '../../data/animations.json';
 import katatedoriShihonage from '../../data/techniques/katatedori_shihonage.json';
 import shomenuchiIriminage from '../../data/techniques/shomenuchi_iriminage.json';
 import { FLOOR_Y, GAME_HEIGHT, GAME_WIDTH, STAGE_CENTER_X } from '../config/gameConfig';
+import { CHARACTER_TEXTURES, addCharacterSprite, preloadCharacterSprites } from '../art/characterSprites';
 import { TimingEngine } from '../engine/TimingEngine';
 import type { EngineEvent, EngineResult, FailReason } from '../engine/types';
 import { validateTechnique } from '../engine/validate';
@@ -127,6 +128,11 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────────── setup ─────────────────────────────
 
+  /** 64x64 SVG 픽셀 아트 (player_idle / enemy_idle). 타이틀에서 이미 로드됐으면 건너뜀 */
+  preload(): void {
+    preloadCharacterSprites(this);
+  }
+
   create(): void {
     this.clock = new GameClock(this.game.loop.now);
     this.loadTechniques();
@@ -134,8 +140,9 @@ export class GameScene extends Phaser.Scene {
     this.makeParticleTexture();
     this.drawDojo();
 
-    this.tori = this.add.sprite(0, FLOOR_Y, '__DEFAULT').setOrigin(0.5, 1).setDepth(10);
-    this.uke = this.add.sprite(0, FLOOR_Y, '__DEFAULT').setOrigin(0.5, 1).setDepth(11).setFlipX(true);
+    // 캐릭터 = 픽셀 아트 스프라이트 (정수 배율 1, 내부 640x360 → 창에 맞춘 정수 줌). 우케는 좌우 반전
+    this.tori = addCharacterSprite(this, STAGE_CENTER_X - 28, FLOOR_Y, CHARACTER_TEXTURES.player).setDepth(10);
+    this.uke = addCharacterSprite(this, STAGE_CENTER_X + 28, FLOOR_Y, CHARACTER_TEXTURES.enemy).setDepth(11).setFlipX(true);
     this.toriAnim = new AnimationController(this.tori, this.seqs);
     this.ukeAnim = new AnimationController(this.uke, this.seqs);
     this.fx = new FxLayer(this, this.seqs, 30);

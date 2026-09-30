@@ -73,7 +73,7 @@
   var animations_default = {
     $schema: "../schema/animations.schema.json",
     sequences: {
-      "tori.kamae": { frames: 4, frameRate: 10, repeat: -1, pose: "stand" },
+      "tori.kamae": { frames: 1, frameRate: 10, repeat: -1, pose: "stand", image: "player_idle" },
       "tori.irimi_enter": { frames: 4, frameRate: 12, holds: { "0": 2, "3": 3 }, pose: "step_in" },
       "tori.irimi_stagger": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "stagger" },
       "tori.hit_head": { frames: 5, frameRate: 12, holds: { "0": 2, "4": 4 }, pose: "hit" },
@@ -86,8 +86,8 @@
       "tori.throw_weak": { frames: 4, frameRate: 10, pose: "weak" },
       "tori.throw_miss": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "whiff" },
       "tori.grab_stuck": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "stuck" },
-      "tori.zanshin": { frames: 2, frameRate: 10, repeat: -1, holds: { "0": 6, "1": 6 }, pose: "zanshin" },
-      "uke.kamae": { frames: 4, frameRate: 10, repeat: -1, pose: "stand" },
+      "tori.zanshin": { frames: 2, frameRate: 10, repeat: -1, holds: { "0": 6, "1": 6 }, pose: "zanshin", image: "player_idle" },
+      "uke.kamae": { frames: 1, frameRate: 10, repeat: -1, pose: "stand", image: "enemy_idle" },
       "uke.shomen_windup": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "windup" },
       "uke.shomen_strike": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "strike" },
       "uke.grab_reach": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "reach" },
@@ -571,6 +571,27 @@
     }
   };
 
+  // src/art/sprites.generated.ts
+  var SPRITE_SIZE = 64;
+  var SPRITE_FOOT_Y = 62;
+  var PLAYER_IDLE_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' shape-rendering='crispEdges'%3E%3Cpath stroke='%231c1b22' d='M27 4.5h8m-10 1h11m-12 1h13m-13 1h14m-14 1h15m-15 1h16m-16 1h17m-17 1h17m-17 1h18m-18 1h18m-18 1h18m-18 1h17m-16 1h15m-15 1h14m-13 1h11m-12 1h15m-17 1h19m-20 1h21m-21 1h22m-22 1h22m-22 1h22m-22 1h21m-21 1h21m-21 1h21m-22 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-22 1h21m-19 1h16m-17 1h17m-17 1h18m-18 1h18m-19 1h19m-19 1h20m-20 1h20m-21 1h21m-21 1h22m-23 1h23m-23 1h23m-23 1h24m-25 1h25m-25 1h25m-26 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-26 1h10m6 0h10m-26 1h10m6 0h10'/%3E%3Cpath stroke='%23d49f7a' d='M34 12.5h1m-2 1h1m-1 1h7m-8 1h1m-1 1h6m-7 1h5m-5 1h3m-3 1h3m-11 16h3m15 0h1m-17 1h1m15 0h1m-20 1h21m-21 1h21m-20 1h2m14 0h3m-21 20h6m9 0h6m-21 1h7m8 0h8'/%3E%3Cpath stroke='%23d9d4c9' d='M26 20.5h1m-3 1h17m-18 1h19m-19 1h20m-18 1h12m4 0h1m-17 1h12m4 0h1m-17 1h1m1 0h10m4 0h1m-17 1h1m1 0h10m4 0h1m-18 1h2m1 0h10m3 0h2m-19 1h3m1 0h10m4 0h2m-20 1h3m1 0h10m4 0h2m-20 1h3m1 0h10m4 0h2m-20 1h3m15 0h2m-20 1h3m15 0h2m-6 1h2'/%3E%3Cpath stroke='%23f7f5f0' d='M27 20.5h12m-13 1h14m-15 1h16m-15 1h16m-18 1h1m3 0h8m2 0h3m-17 1h1m3 0h8m2 0h3m-17 1h1m3 0h8m2 0h3m-17 1h1m4 0h7m2 0h3m-12 1h1m2 0h4m2 0h2m-11 1h1m2 0h4m2 0h3m-10 1h5m2 0h3m-10 1h5m2 0h3m-3 1h3m-3 1h3'/%3E%3Cpath stroke='%23aba494' d='M31 20.5h4m-4 1h4m-3 1h3m-2 1h2m-12 1h1m2 0h1m6 0h1m-11 1h1m2 0h1m6 0h1m-11 1h1m8 0h1m-10 1h1m8 0h1m-10 1h1m7 0h1m-10 1h1m8 0h1m-10 1h1m7 0h1m-9 1h1m7 0h1m-9 1h1m-1 1h1m-1 1h5m12 0h4'/%3E%3Cpath stroke='%232d2d35' d='M27 33.5h10m-9 1h6m-6 1h9m-9 1h9m-10 1h11m-11 1h11m-11 1h11m-12 1h13m-13 1h13m-13 1h13m-13 1h13m-13 1h14m-14 1h14m-15 1h15m-15 1h16m-16 1h16m-17 1h17m-17 1h18m-19 1h19m-19 1h19m-19 1h20m-21 1h21m-21 1h21m-22 1h23m-23 1h23'/%3E%3Cpath stroke='%234c4c58' d='M33 33.5h3m-6 1h1m1 0h1m2 0h1m-6 1h1m1 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m3 0h1m-8 1h1m2 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m4 0h1m-10 1h1m3 0h1m4 0h1m-10 1h1m3 0h1m4 0h1m-11 1h1m4 0h1m4 0h1m-11 1h1m4 0h1m4 0h1m-11 1h1m10 0h1m-12 1h1m4 0h1m5 0h1m-12 1h1m4 0h1m5 0h1m-12 1h1m4 0h1m5 0h1m-13 1h1m5 0h1m5 0h1m-13 1h1m5 0h1m6 0h1m-14 1h1m5 0h1m6 0h1m-14 1h1m5 0h1m6 0h1'/%3E%3Cpath stroke='%23bfc4cc' d='M28 5.5h6m-8 1h9m-10 1h11m-10 1h11m-11 1h12m-12 1h7m-6 1h9m-8 1h5m-5 1h5m-5 1h5m-5 1h4m-4 1h4m-3 1h2'/%3E%3Cpath stroke='%23eceef1' d='M29 5.5h4m-6 1h7m-8 1h9m-8 1h4m1 0h4m-8 1h2m2 0h5m-8 1h1m3 0h3m-3 1h1'/%3E%3Cpath stroke='%23f1c7a3' d='M36 10.5h3m-3 1h4m-5 1h5m-5 1h6m-6 1h4m-6 1h6m-6 1h4m-5 1h3m-3 1h1m-1 1h1m-1 1h2m-2 1h2m-1 1h1m-10 13h1m13 0h3m-18 1h2m13 0h3m-18 1h2m13 0h4m-19 1h2m14 0h3m-20 21h4m11 0h4m-19 1h4m11 0h6'/%3E%3Cpath stroke='%2317171c' d='M27 32.5h10m-10 2h1m6 0h1m-8 1h1m-1 1h1m-2 1h1m-1 1h1m-1 1h1m3 0h1m2 0h1m2 0h1m-12 1h1m4 0h1m2 0h1m3 0h1m-13 1h1m4 0h1m2 0h1m3 0h1m-13 1h1m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m4 0h1m-16 1h2m4 0h1m3 0h1m4 0h1m-16 1h2m4 0h1m3 0h1m4 0h1m-16 1h2m3 0h1m4 0h1m4 0h1m-17 1h2m4 0h1m4 0h1m4 0h1m-17 1h2m4 0h1m3 0h2m5 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-20 1h2m5 0h1m5 0h2m4 0h1m-20 1h2m5 0h1m5 0h2m5 0h1m-22 1h2m6 0h1m5 0h2m5 0h1m-22 1h2m6 0h1m5 0h2m5 0h1m-22 1h25'/%3E%3Cpath stroke='%238a909b' d='M25 8.5h1m-1 1h1m-1 1h1m-1 1h2m10 0h2m-14 1h3m-3 1h3m-3 1h3m-2 1h2m-2 1h2m-1 1h2m-1 1h2'/%3E%3Cpath stroke='%23a8735a' d='M33 12.5h1m0 1h1m2 2h1m-18 45h1'/%3E%3Cpath stroke='%232a1f1f' d='M37 12.5h1'/%3E%3C/svg%3E";
+  var ENEMY_IDLE_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' shape-rendering='crispEdges'%3E%3Cpath stroke='%23f00' d='M26 2.5h10m-12 1h13m-14 1h15m-16 1h17m-17 1h18m-18 1h19m-19 1h20m-20 1h21m-21 1h21m-21 1h22m-22 1h22m-22 1h22m-22 1h22m-22 1h22m-22 1h21m-20 1h19m-20 1h21m-22 1h23m-24 1h25m-25 1h26m-26 1h26m-26 1h26m-26 1h26m-26 1h26m-26 1h25m-26 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-26 1h25m-24 1h23m-23 1h22m-23 1h23m-23 1h24m-24 1h24m-25 1h25m-25 1h26m-27 1h27m-27 1h27m-27 1h28m-29 1h29m-29 1h29m-30 1h31m-31 1h31m-31 1h31m-31 1h31m-31 1h31m-31 1h31m-31 1h31m-30 1h30m-30 1h14m2 0h14m-29 1h12m4 0h12'/%3E%3Cpath stroke='%231c1b22' d='M27 4.5h8m-10 1h11m-12 1h13m-13 1h14m-14 1h15m-15 1h16m-16 1h17m-17 1h17m-17 1h18m-18 1h18m-18 1h18m-18 1h17m-16 1h15m-15 1h14m-13 1h11m-12 1h15m-17 1h19m-20 1h21m-21 1h22m-22 1h22m-22 1h22m-22 1h21m-21 1h21m-21 1h21m-22 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-23 1h23m-22 1h21m-19 1h16m-17 1h17m-17 1h18m-18 1h18m-19 1h19m-19 1h20m-20 1h20m-21 1h21m-21 1h22m-23 1h23m-23 1h23m-23 1h24m-25 1h25m-25 1h25m-26 1h27m-27 1h27m-27 1h27m-27 1h27m-27 1h27m-26 1h10m6 0h10m-26 1h10m6 0h10'/%3E%3Cpath stroke='%23d49f7a' d='M34 12.5h1m-2 1h1m-1 1h7m-8 1h1m-1 1h6m-7 1h5m-5 1h3m-3 1h3m-11 16h3m15 0h1m-17 1h1m15 0h1m-20 1h21m-21 1h21m-20 1h2m14 0h3m-21 20h6m9 0h6m-21 1h7m8 0h8'/%3E%3Cpath stroke='%23d9d4c9' d='M26 20.5h1m-3 1h17m-18 1h19m-19 1h20m-18 1h12m4 0h1m-17 1h12m4 0h1m-17 1h1m1 0h10m4 0h1m-17 1h1m1 0h10m4 0h1m-18 1h2m1 0h10m3 0h2m-19 1h3m1 0h10m4 0h2m-20 1h3m1 0h10m4 0h2m-20 1h3m1 0h10m4 0h2m-20 1h3m15 0h2m-20 1h3m15 0h2m-6 1h2'/%3E%3Cpath stroke='%23f7f5f0' d='M27 20.5h12m-13 1h14m-15 1h16m-15 1h16m-18 1h1m3 0h8m2 0h3m-17 1h1m3 0h8m2 0h3m-17 1h1m3 0h8m2 0h3m-17 1h1m4 0h7m2 0h3m-12 1h1m2 0h4m2 0h2m-11 1h1m2 0h4m2 0h3m-10 1h5m2 0h3m-10 1h5m2 0h3m-3 1h3m-3 1h3'/%3E%3Cpath stroke='%23aba494' d='M31 20.5h4m-4 1h4m-3 1h3m-2 1h2m-12 1h1m2 0h1m6 0h1m-11 1h1m2 0h1m6 0h1m-11 1h1m8 0h1m-10 1h1m8 0h1m-10 1h1m7 0h1m-10 1h1m8 0h1m-10 1h1m7 0h1m-9 1h1m7 0h1m-9 1h1m-1 1h1m-1 1h5m12 0h4'/%3E%3Cpath stroke='%232d2d35' d='M27 33.5h10m-9 1h6m-6 1h9m-9 1h9m-10 1h11m-11 1h11m-11 1h11m-12 1h13m-13 1h13m-13 1h13m-13 1h13m-13 1h14m-14 1h14m-15 1h15m-15 1h16m-16 1h16m-17 1h17m-17 1h18m-19 1h19m-19 1h19m-19 1h20m-21 1h21m-21 1h21m-22 1h23m-23 1h23'/%3E%3Cpath stroke='%234c4c58' d='M33 33.5h3m-6 1h1m1 0h1m2 0h1m-6 1h1m1 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m2 0h1m-7 1h1m2 0h1m3 0h1m-8 1h1m2 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m3 0h1m-9 1h1m3 0h1m4 0h1m-10 1h1m3 0h1m4 0h1m-10 1h1m3 0h1m4 0h1m-11 1h1m4 0h1m4 0h1m-11 1h1m4 0h1m4 0h1m-11 1h1m10 0h1m-12 1h1m4 0h1m5 0h1m-12 1h1m4 0h1m5 0h1m-12 1h1m4 0h1m5 0h1m-13 1h1m5 0h1m5 0h1m-13 1h1m5 0h1m6 0h1m-14 1h1m5 0h1m6 0h1m-14 1h1m5 0h1m6 0h1'/%3E%3Cpath stroke='%23bfc4cc' d='M28 5.5h6m-8 1h9m-10 1h11m-10 1h11m-11 1h12m-12 1h7m-6 1h9m-8 1h5m-5 1h5m-5 1h5m-5 1h4m-4 1h4m-3 1h2'/%3E%3Cpath stroke='%23eceef1' d='M29 5.5h4m-6 1h7m-8 1h9m-8 1h4m1 0h4m-8 1h2m2 0h5m-8 1h1m3 0h3m-3 1h1'/%3E%3Cpath stroke='%23f1c7a3' d='M36 10.5h3m-3 1h4m-5 1h5m-5 1h6m-6 1h4m-6 1h6m-6 1h4m-5 1h3m-3 1h1m-1 1h1m-1 1h2m-2 1h2m-1 1h1m-10 13h1m13 0h3m-18 1h2m13 0h3m-18 1h2m13 0h4m-19 1h2m14 0h3m-20 21h4m11 0h4m-19 1h4m11 0h6'/%3E%3Cpath stroke='%2317171c' d='M27 32.5h10m-10 2h1m6 0h1m-8 1h1m-1 1h1m-2 1h1m-1 1h1m-1 1h1m3 0h1m2 0h1m2 0h1m-12 1h1m4 0h1m2 0h1m3 0h1m-13 1h1m4 0h1m2 0h1m3 0h1m-13 1h1m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m3 0h1m-14 1h2m3 0h1m3 0h1m4 0h1m-16 1h2m4 0h1m3 0h1m4 0h1m-16 1h2m4 0h1m3 0h1m4 0h1m-16 1h2m3 0h1m4 0h1m4 0h1m-17 1h2m4 0h1m4 0h1m4 0h1m-17 1h2m4 0h1m3 0h2m5 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-19 1h2m5 0h1m4 0h2m4 0h1m-20 1h2m5 0h1m5 0h2m4 0h1m-20 1h2m5 0h1m5 0h2m5 0h1m-22 1h2m6 0h1m5 0h2m5 0h1m-22 1h2m6 0h1m5 0h2m5 0h1m-22 1h25'/%3E%3Cpath stroke='%238a909b' d='M25 8.5h1m-1 1h1m-1 1h1m-1 1h2m10 0h2m-14 1h3m-3 1h3m-3 1h3m-2 1h2m-2 1h2m-1 1h2m-1 1h2'/%3E%3Cpath stroke='%23a8735a' d='M33 12.5h1m0 1h1m2 2h1m-18 45h1'/%3E%3Cpath stroke='%232a1f1f' d='M37 12.5h1'/%3E%3C/svg%3E";
+
+  // src/art/characterSprites.ts
+  var CHARACTER_TEXTURES = { player: "player_idle", enemy: "enemy_idle" };
+  var CHARACTER_ORIGIN_Y = SPRITE_FOOT_Y / SPRITE_SIZE;
+  var preloadCharacterSprites = (scene) => {
+    const load = (key, uri) => {
+      if (!scene.textures.exists(key)) scene.load.image(key, uri);
+    };
+    load(CHARACTER_TEXTURES.player, PLAYER_IDLE_URI);
+    load(CHARACTER_TEXTURES.enemy, ENEMY_IDLE_URI);
+  };
+  var addCharacterSprite = (scene, x, floorY, texture, scale = 1) => {
+    if (!Number.isInteger(scale) || scale < 1) throw new RangeError(`캐릭터 배율은 1 이상 정수여야 함 (받은 값: ${scale})`);
+    return scene.add.sprite(Math.round(x), Math.round(floorY), texture).setOrigin(0.5, CHARACTER_ORIGIN_Y).setScale(scale);
+  };
+
   // src/engine/errors.ts
   var TechniqueDataError = class extends Error {
     constructor(techniqueId, issues) {
@@ -766,16 +787,16 @@
         if (!isObj(w)) {
           err(`${label}.window`, "perfect/good/bad 객체가 필요");
         } else {
-          const P = readTier(w.perfect);
+          const P2 = readTier(w.perfect);
           const G = readTier(w.good);
           const B = readTier(w.bad);
-          if (!P) err(`${label}.window.perfect`, "0 이상 정수 또는 {early, late}");
+          if (!P2) err(`${label}.window.perfect`, "0 이상 정수 또는 {early, late}");
           if (!G) err(`${label}.window.good`, "0 이상 정수 또는 {early, late}");
           if (!B) err(`${label}.window.bad`, "0 이상 정수 또는 {early, late}");
-          if (P && G && B) {
+          if (P2 && G && B) {
             for (const side of ["early", "late"])
-              if (!(P[side] <= G[side] && G[side] <= B[side]))
-                err(`${label}.window`, `perfect ≤ good ≤ bad 위반 (${side}: ${P[side]} / ${G[side]} / ${B[side]})`);
+              if (!(P2[side] <= G[side] && G[side] <= B[side]))
+                err(`${label}.window`, `perfect ≤ good ≤ bad 위반 (${side}: ${P2[side]} / ${G[side]} / ${B[side]})`);
             if (perfectMs !== null && dur !== null) {
               if (perfectMs - B.early < 0) err(`${label}.window.bad`, `구간 시작 ${perfectMs - B.early}ms 가 페이즈 시작(0) 이전`);
               if (perfectMs + B.late > dur) err(`${label}.window.bad`, `구간 끝 ${perfectMs + B.late}ms 가 페이즈 끝(${dur}) 이후`);
@@ -1386,8 +1407,145 @@
   };
   var isFinishedAt = (durations, repeat, elapsedMs) => repeat !== -1 && elapsedMs >= totalOf(durations) * (repeat + 1);
 
+  // art/tori_idle.json
+  var tori_idle_default = {
+    $comment: '64x64 픽셀 아트 원본. rows 의 각 글자 = palette 키, "." = 투명. 수정 후 npm run build:sprites',
+    id: "tori_idle",
+    name: "토리 — 자연체 (shizentai) 대기",
+    size: 64,
+    footY: 62,
+    enemyOutline: {
+      color: "#ff0000",
+      width: 2
+    },
+    palette: {
+      K: {
+        color: "#1c1b22",
+        label: "외곽선 (짙은 회흑)"
+      },
+      H: {
+        color: "#eceef1",
+        label: "은발 하이라이트"
+      },
+      h: {
+        color: "#bfc4cc",
+        label: "은발 중간"
+      },
+      j: {
+        color: "#8a909b",
+        label: "은발 그림자"
+      },
+      S: {
+        color: "#f1c7a3",
+        label: "피부"
+      },
+      s: {
+        color: "#d49f7a",
+        label: "피부 그림자"
+      },
+      t: {
+        color: "#a8735a",
+        label: "피부 깊은 그림자 (귀·입)"
+      },
+      E: {
+        color: "#2a1f1f",
+        label: "눈"
+      },
+      W: {
+        color: "#f7f5f0",
+        label: "흰 도복"
+      },
+      w: {
+        color: "#d9d4c9",
+        label: "도복 그림자"
+      },
+      v: {
+        color: "#aba494",
+        label: "도복 깊은 그림자 (깃·소매)"
+      },
+      B: {
+        color: "#2d2d35",
+        label: "검은 하카마"
+      },
+      b: {
+        color: "#4c4c58",
+        label: "하카마 주름 하이라이트"
+      },
+      n: {
+        color: "#17171c",
+        label: "하카마 깊은 그림자"
+      }
+    },
+    rows: [
+      "................................................................",
+      "................................................................",
+      "................................................................",
+      "................................................................",
+      "...........................KKKKKKKK.............................",
+      ".........................KKKhHHHHhKK............................",
+      "........................KKhHHHHHHHhKK...........................",
+      "........................KhHHHHHHHHHhKK..........................",
+      "........................KjhHHHHhHHHHhKK.........................",
+      "........................KjhhHHhhHHHHHhKK........................",
+      "........................KjhhhHhhhHHHSSSKK.......................",
+      "........................KjjhhhhhhHhhSjjSK.......................",
+      "........................KjjjhhhhhtsSSESSKK......................",
+      "........................KjjjhhhhhstSSSSSSK......................",
+      "........................KjjjhhhhhssSSSSsKK......................",
+      "........................KKjjhhhhsSSSStSKK.......................",
+      ".........................KjjhhhhsSSSSsKK........................",
+      ".........................KKjjhhsSSSsKKK.........................",
+      "..........................KKjjKsSsKKK...........................",
+      ".........................KKKKKKsSsKKKKKK........................",
+      ".......................KKKwWWWWvSSvWWWWKKK......................",
+      "......................KKwwWWWWWvSSvWWWWWwKK.....................",
+      "......................KwwWWWWWWWvSvWWWWWWwKK....................",
+      "......................KwwwWWWWWWWvvWWWWWWWwK....................",
+      "......................KvWwvwWWWWWvWWwKWWWwKK....................",
+      "......................KvWwvwWWWWWvWWwKWWWwK.....................",
+      "......................KvWwKwWWWWvWWWwKWWWwK.....................",
+      "......................KvWwKwwWWWvWWWwKWWWwK.....................",
+      ".....................KKvwwKwwWwvWWWWwKWWwwKK....................",
+      ".....................KvwwwKwwWwvWWWWwKWWWwwK....................",
+      ".....................KvwwwKwwwvWWWWWwKWWWwwK....................",
+      ".....................KvwwwKwwwvWWWWWwKWWWwwK....................",
+      ".....................KvwwwKnnnnnnnnnnKWWWwwK....................",
+      ".....................KvwwwKBBBBBBbbbBKWWWwwK....................",
+      ".....................KvvvvvnBBbBbBnbKwwvvvvK....................",
+      ".....................KKsSsKnBBbBbBBbBKSSSsKK....................",
+      ".....................KKSSsKnBbBBbBBbBKSSSsKK....................",
+      ".....................KsSSsnBBbBBbBBbBBSSSSsK....................",
+      ".....................KsSSsnBBbBBbBBbBBsSSSsK....................",
+      ".....................KKssKnBBbnBbnBbnBKsssKK....................",
+      "......................KKKnBBBbnBbnBBbnBKKKK.....................",
+      "........................KnBBBbnBbnBBbnBK........................",
+      ".......................KKnBBbnBBbnBBbnBK........................",
+      ".......................KnnBBbnBBbnBBbnBKK.......................",
+      ".......................KnnBBbnBBbnBBbnBBK.......................",
+      "......................KKnnBBbnBBbnBBBbnBK.......................",
+      "......................KnnBBBbnBBbnBBBbnBKK......................",
+      "......................KnnBBBbnBBbnBBBbnBBK......................",
+      ".....................KKnnBBbnBBBbnBBBbnBBK......................",
+      ".....................KnnBBBbnBBBbnBBBbnBBKK.....................",
+      "....................KKnnBBBbnBBBnnBBBBbnBBK.....................",
+      "....................KnnBBBBbnBBBbnnBBBbnBBK.....................",
+      "....................KnnBBBBbnBBBbnnBBBbnBBKK....................",
+      "...................KKnnBBBBbnBBBbnnBBBbnBBBK....................",
+      "...................KnnBBBBbnBBBBbnnBBBbnBBBK....................",
+      "..................KKnnBBBBbnBBBBbnnBBBBbnBBKK...................",
+      "..................KnnBBBBBbnBBBBbnnBBBBbnBBBK...................",
+      "..................KnnBBBBBbnBBBBbnnBBBBbnBBBK...................",
+      "..................KnnnnnnnnnnnnnnnnnnnnnnnnnK...................",
+      "..................KKKsSSSSsKKKKKKKKKsSSSSsKKK...................",
+      "...................KtsSSSSssK......KsSSSSSSsK...................",
+      "...................KKKKKKKKKK......KKKKKKKKKK...................",
+      "................................................................",
+      "................................................................"
+    ]
+  };
+
   // src/render/placeholderArt.ts
-  var CHAR_FRAME = { w: 64, h: 64 };
+  var CHAR_FRAME = { w: 96, h: 64 };
   var FX_FRAME = { w: 32, h: 32 };
   var J = (p) => ({ lean: 0, arm: 40, reach: 10, crouch: 0, lie: 0, dx: 0, step: 4, ...p });
   var POSES = {
@@ -1419,24 +1577,18 @@
     twisted: [J({ lean: 15, arm: -30 }), J({ lean: -25, arm: -80, dx: -3 })],
     stuck: [J({ lean: 5, arm: 10 }), J({ lean: -10, arm: 10, crouch: 4 })]
   };
+  var P = tori_idle_default.palette;
   var TORI_PALETTE = {
-    gi: "#4f8ef7",
-    giShade: "#2358c9",
-    hakama: "#1b2f73",
-    belt: "#0e1a45",
-    skin: "#e0b48a",
-    hair: "#1a1410",
-    outline: "#07070c"
+    gi: P.W.color,
+    giShade: P.w.color,
+    hakama: P.B.color,
+    belt: P.n.color,
+    skin: P.S.color,
+    hair: P.H.color,
+    hairShade: P.h.color,
+    outline: P.K.color
   };
-  var UKE_PALETTE = {
-    gi: "#ef4b4b",
-    giShade: "#b82424",
-    hakama: "#6b1717",
-    belt: "#3a0909",
-    skin: "#d9a57a",
-    hair: "#15110f",
-    outline: "#07070c"
-  };
+  var UKE_PALETTE = { ...TORI_PALETTE, highlight: tori_idle_default.enemyOutline.color };
   var lerp = (a, b, t) => a + (b - a) * t;
   var lerpJoint = (a, b, t) => ({
     lean: lerp(a.lean, b.lean, t),
@@ -1489,20 +1641,26 @@
     const lift = Math.max(0, -Math.min(...pts.map((p) => p.y - 4)));
     const map = (p) => {
       const r = rot(p);
-      return { x: ox + w / 2 + r.x, y: oy + h - 2 - (r.y + lift) };
+      return { x: ox + w / 2 + r.x + j.lie * 10, y: oy + h - 2 - (r.y + lift) };
     };
-    for (const pass of ["outline", "fill"]) {
-      const o = pass === "outline" ? 2 : 0;
-      const c = (col) => pass === "outline" ? pal.outline : col;
+    const passes = [
+      ...pal.highlight ? [{ o: 6, color: pal.highlight }] : [],
+      { o: 2, color: pal.outline },
+      { o: 0, color: null }
+    ];
+    for (const { o, color } of passes) {
+      const c = (col) => color ?? col;
       stroke(ctx, shoulder, backHand, 3 + o, c(pal.giShade), map);
       stroke(ctx, hip, back, 6 + o, c(pal.hakama), map);
       stroke(ctx, hip, front, 6 + o, c(pal.hakama), map);
       stroke(ctx, hip, shoulder, 9 + o, c(pal.gi), map);
-      disc(ctx, head, 4 + (o ? 1 : 0), c(pal.skin), map);
+      disc(ctx, head, 4 + Math.ceil(o / 2), c(pal.skin), map);
       stroke(ctx, shoulder, elbow, 4 + o, c(pal.gi), map);
       stroke(ctx, elbow, hand, 3 + o, c(pal.gi), map);
     }
-    disc(ctx, { x: head.x - Math.sin(L) * 1 - 1, y: head.y + 2 }, 2, pal.hair, map);
+    const back1 = { x: head.x - Math.cos(L) * 1.5 - Math.sin(L) * 0.5, y: head.y + 1 };
+    disc(ctx, back1, 3, pal.hairShade, map);
+    disc(ctx, { x: back1.x + 0.5, y: back1.y + 1 }, 2, pal.hair, map);
     stroke(ctx, { x: hip.x - 3, y: hip.y + 1 }, { x: hip.x + 3, y: hip.y + 1 }, 2, pal.belt, map);
     disc(ctx, hand, 1, pal.skin, map);
     stroke(ctx, { x: shoulder.x - 1, y: shoulder.y - 3 }, { x: hip.x - 2, y: hip.y + 3 }, 2, pal.giShade, map);
@@ -1586,6 +1744,7 @@
         durations: [100],
         totalMs: 100,
         repeat: 0,
+        originY: 1,
         source: "missing"
       };
       this.map.set(key, missing);
@@ -1602,7 +1761,14 @@
       if (fps !== def.frameRate) this.warn(`${key}:fps`, `${key}: frameRate ${def.frameRate} → ${fps} (10~12fps 고정)`);
       const n = Math.max(1, Math.floor(def.frames));
       const durations = buildDurations(fps, n, def.holds);
-      const base = { key, frameRate: fps, durations, totalMs: totalOf(durations), repeat: def.repeat ?? 0 };
+      const base = { key, frameRate: fps, durations, totalMs: totalOf(durations), repeat: def.repeat ?? 0, originY: 1 };
+      if (def.image) {
+        if (this.scene.textures.exists(def.image)) {
+          const one = buildDurations(fps, 1);
+          return { ...base, durations: one, totalMs: totalOf(one), textureKey: def.image, frames: ["__BASE"], originY: CHARACTER_ORIGIN_Y, source: "image" };
+        }
+        this.warn(`${key}:image`, `${key}: 이미지 텍스처 '${def.image}' 가 로드되지 않음 → 플레이스홀더`);
+      }
       if (def.atlas) {
         const tex = this.scene.textures.exists(def.atlas.texture) ? this.scene.textures.get(def.atlas.texture) : null;
         const start = def.atlas.start ?? 0;
@@ -1669,7 +1835,7 @@
       this.seq = s;
       this.startAt = atMs;
       this.shown = -1;
-      this.sprite.setTexture(s.textureKey, s.frames[0]);
+      this.sprite.setTexture(s.textureKey, s.frames[0]).setOrigin(0.5, s.originY);
     }
     update(nowMs) {
       const s = this.seq;
@@ -1999,6 +2165,10 @@
       __publicField(this, "modeButtons", {});
       __publicField(this, "tagline");
     }
+    /** SVG Data URI → player_idle / enemy_idle 텍스처 */
+    preload() {
+      preloadCharacterSprites(this);
+    }
     create() {
       this.starting = false;
       this.mode = this.registry.get(MODE_REGISTRY_KEY) ?? "flow";
@@ -2068,24 +2238,24 @@
       const px = GAME_WIDTH / 2 - 130;
       const py = 60;
       const pw = 260;
-      const ph = 172;
+      const ph = 176;
       const g = this.add.graphics();
       g.fillStyle(0, 0.6).fillRect(px + 3, py + 4, pw, ph);
       g.fillStyle(2761267).fillRect(px, py, pw, ph);
-      [3812677, 4863056, 6044757, 7226708].forEach((c, i) => g.fillStyle(c).fillRect(px + 4, py + 4 + i * 22, pw - 8, 22));
+      [3812677, 4863056, 6044757, 7226708].forEach((c, i) => g.fillStyle(c).fillRect(px + 4, py + 4 + i * 37, pw - 8, 37));
       g.fillStyle(15909997);
       for (let dy = -18; dy <= 18; dy += 2) {
         const half = Math.round(Math.sqrt(18 * 18 - dy * dy));
-        g.fillRect(px + pw - 70 - half, py + 50 + dy, half * 2, 2);
+        g.fillRect(px + 44 - half, py + 40 + dy, half * 2, 2);
       }
-      g.fillStyle(4938284).fillRect(px + 4, py + 124, pw - 8, ph - 128);
+      g.fillStyle(4938284).fillRect(px + 4, py + 150, pw - 8, ph - 154);
       g.fillStyle(6122807);
-      for (let x = px + 4; x < px + pw - 4; x += 32) g.fillRect(x, py + 124, 1, ph - 128);
-      g.fillStyle(1777680).fillRect(px + 4, py + 124, pw - 8, 1);
+      for (let x = px + 4; x < px + pw - 4; x += 32) g.fillRect(x, py + 150, 1, ph - 154);
+      g.fillStyle(1777680).fillRect(px + 4, py + 150, pw - 8, 1);
       g.lineStyle(2, 9075290).strokeRect(px + 1, py + 1, pw - 2, ph - 2);
-      const floor = py + 150;
-      this.add.sprite(GAME_WIDTH / 2 - 26, floor, "ph:tori.throw_cut", 3).setOrigin(0.5, 1).setScale(2);
-      this.add.sprite(GAME_WIDTH / 2 + 30, floor, "ph:uke.lifted", 3).setOrigin(0.5, 1).setScale(2).setFlipX(true);
+      const floor = py + 162;
+      addCharacterSprite(this, GAME_WIDTH / 2 - 40, floor, CHARACTER_TEXTURES.player, 2);
+      addCharacterSprite(this, GAME_WIDTH / 2 + 40, floor, CHARACTER_TEXTURES.enemy, 2).setFlipX(true);
     }
   };
 
@@ -2191,14 +2361,18 @@
       this.speedIdx = DEFAULT_SPEED_INDEX;
     }
     // ───────────────────────────── setup ─────────────────────────────
+    /** 64x64 SVG 픽셀 아트 (player_idle / enemy_idle). 타이틀에서 이미 로드됐으면 건너뜀 */
+    preload() {
+      preloadCharacterSprites(this);
+    }
     create() {
       this.clock = new GameClock(this.game.loop.now);
       this.loadTechniques();
       this.seqs = new AnimRegistry(this, MANIFEST2).build();
       this.makeParticleTexture();
       this.drawDojo();
-      this.tori = this.add.sprite(0, FLOOR_Y, "__DEFAULT").setOrigin(0.5, 1).setDepth(10);
-      this.uke = this.add.sprite(0, FLOOR_Y, "__DEFAULT").setOrigin(0.5, 1).setDepth(11).setFlipX(true);
+      this.tori = addCharacterSprite(this, STAGE_CENTER_X - 28, FLOOR_Y, CHARACTER_TEXTURES.player).setDepth(10);
+      this.uke = addCharacterSprite(this, STAGE_CENTER_X + 28, FLOOR_Y, CHARACTER_TEXTURES.enemy).setDepth(11).setFlipX(true);
       this.toriAnim = new AnimationController(this.tori, this.seqs);
       this.ukeAnim = new AnimationController(this.uke, this.seqs);
       this.fx = new FxLayer(this, this.seqs, 30);
