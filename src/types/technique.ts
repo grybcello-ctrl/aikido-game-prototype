@@ -115,6 +115,19 @@ export type PhaseTuple = [IntroPhase, ProgressionPhase, ThrowPhase];
 
 // ─────────────────────────── 입력 · 점수 · 낙법 ───────────────────────────
 
+/**
+ * 기술 실패(낙법 없이 종료) 조건. 생략 시 기본값.
+ * 실패 시 이후 판정·기본 큐는 취소되고, 실패를 일으킨 판정의 onJudge 반응 큐만 끝까지 재생된다.
+ */
+export interface FailureRules {
+  /** 이 페이즈 타입에서 Miss 가 나면 즉시 실패. 기본 [] */
+  abortOnMiss?: PhaseType[];
+  /** 연속 Miss 가 이 횟수(≥1)에 도달하면 실패. 생략 = 제한 없음 */
+  maxConsecutiveMiss?: number;
+  /** 모든 판정이 Miss(유효 입력 0회)로 끝나면 실패. 기본 true */
+  failOnNoInput?: boolean;
+}
+
 export interface InputRules {
   /** 판정 구간 밖에서 누르면 이 시간 동안 입력 무시 (연타 방지). 기본 0 */
   lockoutMs?: Ms;
@@ -160,6 +173,7 @@ export interface TechniqueData {
   phases: PhaseTuple;
   scoring: Scoring;
   ukemi: UkemiMapping;
+  failure?: FailureRules;
 }
 
 // ─────────────────────────── 런타임 계약 (엔진 ↔ 렌더러/디버거) ───────────────────────────

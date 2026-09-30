@@ -1,0 +1,17 @@
+{
+  "name": "aikido-game-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Data-driven one-button Aikido timing game (Phaser 3) — technique data + timing core",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "validate": "tsx scripts/validate.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "ajv": "^8.17.1",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3"
+  }
+}
