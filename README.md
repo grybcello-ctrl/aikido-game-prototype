@@ -2,7 +2,7 @@
 
 JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수정 없이 **도입부 → 진행부(1~N회) → 던지기 → 낙법** 으로 이어지는 아이키도 기술이 추가되는 원버튼 타이밍 게임 (Phaser 3).
 
-현재 단계: **Task 4 — 타이틀·씬 전환·UI 통합, 단일 파일 실행**
+현재 단계: **개발자 모드 (브라우저 기술 에디터)**
 
 ## 실행
 
@@ -10,7 +10,9 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 - **완전 오프라인**: `play/index.offline.html` — Phaser + 사용 글자만 담은 한글 폰트 서브셋까지 파일 하나에 포함
 - 개발 서버: `npm install && npm run dev` → http://localhost:5173
 
-씬 흐름: **Title**(Touch to Start · 모드 선택) → **Game**(READY → 라운드 반복) → Home 버튼으로 Title
+씬 흐름:
+- **Title** → [PLAY MODE] → **Game**(READY → 라운드 반복) → Home 버튼으로 Title
+- **Title** → [DEVELOPER MODE] / `D` → **Editor**(DOM 기술 에디터) → ▶ TEST → Game(TEST) → ■ STOP → Editor
 
 | 입력 | 동작 |
 |---|---|
@@ -31,6 +33,23 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 
 모드 룰은 `src/game/modes.ts` 의 `MODES` 에서 수치로 조정한다.
 
+## 개발자 모드 (DEVELOPER MODE)
+
+코드를 건드리지 않고 브라우저에서 새 기술을 만들고 튜닝한다. 편집 내용은 localStorage 에 자동 저장되고, **PLAY MODE 도 같은 기술 목록으로 플레이**한다 (유효한 기술이 하나도 없으면 기본 기술).
+
+| 영역 | 기능 |
+|---|---|
+| 좌측 목록 | 기술 목록 (규칙 통과 OK / 오류 개수), `+ 새 기술 추가`, 기본 기술로 초기화 |
+| 우측 폼 | 기술명 · ID · 설명 · **총 시전 시간** (바꾸면 모든 페이즈 길이·퍼펙트 시각을 같은 비율로 조정, 판정 오차는 유지) |
+| | Phase 1 도입 / Phase 3 던지기: 길이, 퍼펙트 시각, Perfect·Good·Bad 윈도우 (일찍/늦게 ms) + 타이밍 막대 |
+| | Phase 2 진행: `+ 타이밍 추가` 로 입력 구간 N개, 회차마다 길이·퍼펙트·윈도우 따로 (`progression.steps`) |
+| | 이미지: 페이즈별 · 낙법(Perfect/Good/Bad)별 토리/우케 애니메이션 Key 입력 또는 PNG/SVG 업로드 |
+| 가운데 | Phaser 캔버스. `▶ TEST` = 폼 데이터를 `TimingEngine` 에 주입해 바로 재생, Space / 캔버스 클릭 = 입력, 아래에 판정 로그 (±ms) |
+| 상단 | `Export JSON` = 모든 기술을 스킬 팩 JSON 하나로 클립보드 복사 (+ 파일 저장), `Import` = 교체 / 추가 |
+
+- 스킬 팩 형식: `schema/skillpack.schema.json` — `techniques[]`(각각 technique.schema.json) + 업로드 이미지 시퀀스 `custom.*` + 이미지 Data URI
+- 입력 충돌 방지: 패널과 캔버스는 겹치지 않는 영역, 폼에 글자를 입력하는 동안 Space·단축키는 게임에 전달되지 않음
+
 ## 구조
 
 | 경로 | 내용 |
@@ -41,6 +60,7 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 | `src/engine/` | `TimingEngine` 등 판정 코어 (Phaser 비의존) |
 | `src/render/` | `GameClock`(배속·히트스톱) · `AnimRegistry` · `AnimationController` · `FxLayer` · `Spacing`(거리) · 플레이스홀더 픽셀 아트 |
 | `src/game/` | `TitleScene` · `GameScene` · 모드 룰 · 폰트 |
+| `src/editor/` | 개발자 모드: `EditorScene` · `DevEditor`(DOM 폼) · 스킬 팩 저장/Export · 폼↔기술 데이터 변환 |
 | `src/ui/` | `PixelButton` (Graphics + Text 픽셀 버튼) |
 | `src/config/` | 640×360 Pixel-perfect 설정, 리미티드 애니메이션(10~12fps) 정책 |
 
