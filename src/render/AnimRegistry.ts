@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import { clampAnimFps } from '../config/animation';
 import type { AnimationManifest, PoseHint, SequenceDef } from '../types/animations';
-import { CHARACTER_ORIGIN_Y } from '../art/characterSprites';
+import { originYFor } from '../art/characterSprites';
 import { buildDurations, totalOf } from './frameTiming';
 import { CHAR_FRAME, FX_FRAME, TORI_PALETTE, UKE_PALETTE, drawFigure, drawFx } from './placeholderArt';
 
@@ -76,7 +76,7 @@ export class AnimRegistry {
       // 단일 이미지 (정지 포즈). 로드돼 있지 않으면 플레이스홀더로 폴백
       if (this.scene.textures.exists(def.image)) {
         const one = buildDurations(fps, 1);
-        return { ...base, durations: one, totalMs: totalOf(one), textureKey: def.image, frames: ['__BASE'], originY: CHARACTER_ORIGIN_Y, source: 'image' };
+        return { ...base, durations: one, totalMs: totalOf(one), textureKey: def.image, frames: ['__BASE'], originY: originYFor(def.image), source: 'image' };
       }
       this.warn(`${key}:image`, `${key}: 이미지 텍스처 '${def.image}' 가 로드되지 않음 → 플레이스홀더`);
     }
