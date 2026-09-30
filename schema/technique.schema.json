@@ -31,7 +31,8 @@
     },
     "scoring": { "$ref": "#/$defs/scoring" },
     "ukemi": { "$ref": "#/$defs/ukemiMapping" },
-    "failure": { "$ref": "#/$defs/failureRules" }
+    "failure": { "$ref": "#/$defs/failureRules" },
+    "spacing": { "$ref": "#/$defs/spacingRules" }
   },
   "additionalProperties": false,
 
@@ -124,8 +125,40 @@
           "minItems": 1,
           "description": "기본 타임라인 (퍼펙트 수행 기준 연출). atMs 는 페이즈 시작 기준"
         },
-        "onJudge": { "$ref": "#/$defs/judgeReactions" }
+        "onJudge": { "$ref": "#/$defs/judgeReactions" },
+        "spacing": { "$ref": "#/$defs/spacingMove", "description": "판정 순간 토리↔우케 거리 변경 (Miss 는 기본적으로 이동 없음)" }
       }
+    },
+    "spacingRules": {
+      "description": "캐릭터 간 거리(px, 내부 해상도 640 기준). 기술 시작 거리와 판정 등급별 여유",
+      "type": "object",
+      "required": ["startPx"],
+      "properties": {
+        "startPx": { "type": "integer", "minimum": 0, "description": "기술 시작 시 토리↔우케 거리" },
+        "moveMs": { "type": "integer", "minimum": 0, "default": 120, "description": "기본 이동 시간" },
+        "slackPx": {
+          "description": "좁히는 이동에서 등급별로 덜 좁혀지는 거리 (Perfect = 0)",
+          "type": "object",
+          "properties": {
+            "good": { "type": "integer", "minimum": 0 },
+            "bad": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "spacingMove": {
+      "description": "거리 이동 1회. targetPx(절대 거리) 또는 deltaPx(현재 거리 기준 증감) 중 정확히 하나",
+      "type": "object",
+      "properties": {
+        "targetPx": { "type": "integer", "minimum": 0 },
+        "deltaPx": { "type": "integer" },
+        "anchor": { "enum": ["tori", "uke", "center"], "default": "tori", "description": "누가 움직이는가 (center = 둘 다 절반씩)" },
+        "moveMs": { "type": "integer", "minimum": 0 }
+      },
+      "oneOf": [{ "required": ["targetPx"] }, { "required": ["deltaPx"] }],
+      "additionalProperties": false
     },
     "introPhase": {
       "$ref": "#/$defs/phaseCommon",
@@ -219,7 +252,8 @@
       "properties": {
         "label": { "type": "string" },
         "durationMs": { "type": "integer", "minimum": 1 },
-        "animations": { "$ref": "#/$defs/cueList", "minItems": 1, "description": "atMs 는 낙법 시작(던지기 종료) 기준" }
+        "animations": { "$ref": "#/$defs/cueList", "minItems": 1, "description": "atMs 는 낙법 시작(던지기 종료) 기준" },
+        "spacing": { "$ref": "#/$defs/spacingMove", "description": "낙법 시작 시 거리 변경 (우케가 날아감)" }
       },
       "additionalProperties": false
     },

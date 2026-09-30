@@ -203,6 +203,66 @@ export const validateTechnique = (input: unknown): string[] => {
     }
   }
 
+  // ── spacing (거리) ──
+  const moves: { path: string; move: Obj }[] = [];
+  const checkMove = (v: unknown, path: string) => {
+    if (v === undefined) return;
+    if (!isObj(v)) return err(path, '객체가 아님');
+    const hasT = v.targetPx !== undefined;
+    const hasD = v.deltaPx !== undefined;
+    if (hasT === hasD) err(path, 'targetPx 또는 deltaPx 중 정확히 하나');
+    if (hasT && !isMs(v.targetPx)) err(`${path}.targetPx`, '0 이상 정수');
+    if (hasD && !Number.isInteger(v.deltaPx)) err(`${path}.deltaPx`, '정수');
+    if (v.anchor !== undefined && !['tori', 'uke', 'center'].includes(v.anchor as string)) err(`${path}.anchor`, 'tori | uke | center');
+    if (v.moveMs !== undefined && !isMs(v.moveMs)) err(`${path}.moveMs`, '0 이상 정수');
+    moves.push({ path, move: v });
+  };
+  if (Array.isArray(t.phases)) t.phases.forEach((ph, i) => isObj(ph) && checkMove(ph.spacing, `phases[${i}].spacing`));
+  if (isObj(t.ukemi) && isObj(t.ukemi.results))
+    for (const g of UKEMI) {
+      const r = t.ukemi.results[g];
+      if (isObj(r)) checkMove(r.spacing, `ukemi.results.${g}.spacing`);
+    }
+  const sp = t.spacing;
+  if (sp !== undefined) {
+    if (!isObj(sp)) err('spacing', '객체가 아님');
+    else {
+      if (!isMs(sp.startPx)) err('spacing.startPx', '0 이상 정수');
+      if (sp.moveMs !== undefined && !isMs(sp.moveMs)) err('spacing.moveMs', '0 이상 정수');
+      if (sp.slackPx !== undefined) {
+        if (!isObj(sp.slackPx)) err('spacing.slackPx', '객체가 아님');
+        else for (const k of ['good', 'bad']) if (sp.slackPx[k] !== undefined && !isMs(sp.slackPx[k])) err(`spacing.slackPx.${k}`, '0 이상 정수');
+      }
+    }
+  } else if (moves.length) {
+    err('spacing', '페이즈/낙법에 spacing 이 있으면 spacing.startPx 필요');
+  }
+
+  // 퍼펙트 경로에서 거리가 음수가 되지 않는지 (진행부 N = min..max 모두)
+  if (issues.length === 0 && isObj(sp) && Array.isArray(t.phases) && isObj(t.phases[1]) && isObj(t.phases[1].repeat)) {
+    const [p0, p1, p2] = t.phases as Obj[];
+    const { min, max } = t.phases[1].repeat as { min: number; max: number };
+    const apply = (d: number, m: unknown) =>
+      !isObj(m) ? d : m.targetPx !== undefined ? (m.targetPx as number) : d + (m.deltaPx as number);
+    for (let n = min; n <= max; n++) {
+      let d = sp.startPx as number;
+      const seq = [p0, ...Array.from({ length: n }, () => p1), p2];
+      for (const [i, ph] of seq.entries()) {
+        d = apply(d, ph?.spacing);
+        if (d < 0) {
+          err('spacing', `N=${n}: ${i}번째 판정 후 거리 ${d}px < 0`);
+          break;
+        }
+      }
+      if (d >= 0 && isObj(t.ukemi) && isObj(t.ukemi.results))
+        for (const g of UKEMI) {
+          const r = t.ukemi.results[g];
+          const after = isObj(r) ? apply(d, r.spacing) : d;
+          if (after < 0) err(`ukemi.results.${g}.spacing`, `N=${n}: 낙법 후 거리 ${after}px < 0`);
+        }
+    }
+  }
+
   return issues;
 };
 

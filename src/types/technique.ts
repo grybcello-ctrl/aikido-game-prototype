@@ -85,6 +85,33 @@ interface PhaseCommon {
   /** 기본 타임라인 (퍼펙트 수행 기준 연출). 1개 이상, atMs < durationMs */
   animations: AnimationCue[];
   onJudge?: JudgeReactions;
+  /** 판정 순간 토리↔우케 거리 변경 (Miss 는 기본적으로 이동 없음) */
+  spacing?: SpacingMove;
+}
+
+// ─────────────────────────── 거리(마아이) ───────────────────────────
+
+/** 누가 움직이는가. center = 둘 다 절반씩 */
+export type SpacingAnchor = 'tori' | 'uke' | 'center';
+
+/** 거리 이동 1회. targetPx(절대 거리) 또는 deltaPx(현재 거리 기준 증감) 중 정확히 하나 */
+export interface SpacingMove {
+  targetPx?: number;
+  deltaPx?: number;
+  /** 기본 'tori' */
+  anchor?: SpacingAnchor;
+  /** 이동 시간. 생략 시 SpacingRules.moveMs */
+  moveMs?: Ms;
+}
+
+/** 캐릭터 간 거리 규칙 (px, 내부 해상도 640 기준) */
+export interface SpacingRules {
+  /** 기술 시작 시 토리↔우케 거리 */
+  startPx: number;
+  /** 기본 이동 시간. 기본 120 */
+  moveMs?: Ms;
+  /** 좁히는 이동에서 등급별로 덜 좁혀지는 거리 (Perfect = 0) */
+  slackPx?: { good?: number; bad?: number };
 }
 
 export interface IntroPhase extends PhaseCommon {
@@ -143,6 +170,8 @@ export interface UkemiResult {
   durationMs: Ms;
   /** atMs 는 낙법 시작(던지기 종료) 기준. uke 큐 1개 이상 필수 */
   animations: AnimationCue[];
+  /** 낙법 시작 시 거리 변경 (우케가 날아감) */
+  spacing?: SpacingMove;
 }
 
 /**
@@ -174,6 +203,7 @@ export interface TechniqueData {
   scoring: Scoring;
   ukemi: UkemiMapping;
   failure?: FailureRules;
+  spacing?: SpacingRules;
 }
 
 // ─────────────────────────── 런타임 계약 (엔진 ↔ 렌더러/디버거) ───────────────────────────

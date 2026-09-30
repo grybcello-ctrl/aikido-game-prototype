@@ -1,0 +1,43 @@
+{
+  "$schema": "../schema/animations.schema.json",
+  "sequences": {
+    "tori.kamae":          { "frames": 4, "frameRate": 10, "repeat": -1, "pose": "stand" },
+    "tori.irimi_enter":    { "frames": 4, "frameRate": 12, "holds": { "0": 2, "3": 3 }, "pose": "step_in" },
+    "tori.irimi_stagger":  { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "stagger" },
+    "tori.hit_head":       { "frames": 5, "frameRate": 12, "holds": { "0": 2, "4": 4 }, "pose": "hit" },
+    "tori.tenkan_lead":    { "frames": 5, "frameRate": 10, "holds": { "4": 2 }, "pose": "lead" },
+    "tori.tenkan_turn":    { "frames": 5, "frameRate": 12, "holds": { "0": 2, "4": 3 }, "pose": "turn" },
+    "tori.raise_arm":      { "frames": 5, "frameRate": 10, "holds": { "4": 2 }, "pose": "raise" },
+    "tori.throw_windup":   { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "lift_prep" },
+    "tori.throw_cut":      { "frames": 4, "frameRate": 12, "holds": { "0": 2, "3": 4 }, "pose": "cut" },
+    "tori.shiho_cut":      { "frames": 4, "frameRate": 12, "holds": { "0": 2, "3": 4 }, "pose": "cut" },
+    "tori.throw_weak":     { "frames": 4, "frameRate": 10, "pose": "weak" },
+    "tori.throw_miss":     { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "whiff" },
+    "tori.grab_stuck":     { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "stuck" },
+    "tori.zanshin":        { "frames": 2, "frameRate": 10, "repeat": -1, "holds": { "0": 6, "1": 6 }, "pose": "zanshin" },
+
+    "uke.kamae":           { "frames": 4, "frameRate": 10, "repeat": -1, "pose": "stand" },
+    "uke.shomen_windup":   { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "windup" },
+    "uke.shomen_strike":   { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "strike" },
+    "uke.grab_reach":      { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "reach" },
+    "uke.grab_hold":       { "frames": 3, "frameRate": 10, "holds": { "2": 4 }, "pose": "hold" },
+    "uke.drawn_spiral":    { "frames": 5, "frameRate": 10, "pose": "drawn" },
+    "uke.twisted":         { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "twisted" },
+    "uke.off_balance":     { "frames": 3, "frameRate": 12, "holds": { "2": 3 }, "pose": "off_balance" },
+    "uke.resist":          { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "resist" },
+    "uke.recover":         { "frames": 4, "frameRate": 10, "pose": "recover" },
+    "uke.lifted":          { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "lifted" },
+    "uke.thrown":          { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "thrown" },
+    "uke.thrown_back":     { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "thrown" },
+    "uke.ukemi_back_roll": { "frames": 6, "frameRate": 12, "holds": { "5": 4 }, "pose": "roll" },
+    "uke.ukemi_sloppy":    { "frames": 6, "frameRate": 10, "holds": { "5": 4 }, "pose": "sloppy" },
+    "uke.ukemi_crash":     { "frames": 5, "frameRate": 10, "holds": { "0": 2, "4": 6 }, "pose": "crash" },
+
+    "fx.musubi_flash":     { "frames": 5, "frameRate": 12, "pose": "fx_flash" },
+    "fx.impact_flash":     { "frames": 5, "frameRate": 12, "pose": "fx_flash" },
+    "fx.contact_soft":     { "frames": 4, "frameRate": 12, "pose": "fx_soft" },
+    "fx.hit_spark":        { "frames": 4, "frameRate": 12, "pose": "fx_spark" },
+    "fx.kuzushi_ring":     { "frames": 5, "frameRate": 12, "pose": "fx_ring" },
+    "fx.dust":             { "frames": 5, "frameRate": 10, "pose": "fx_dust" }
+  }
+}
