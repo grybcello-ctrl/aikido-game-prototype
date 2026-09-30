@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aikido-game-prototype.local/schema/animations.schema.json",
+  "title": "Animation Sequence Manifest",
+  "description": "기술 JSON 의 시퀀스 시작 Key → 실제 프레임 재생 정보. 기술 데이터는 '언제 어떤 Key 를 시작할지'만, 이 파일은 'Key 가 어떤 프레임을 몇 fps 로 재생하는지'를 담당한다. atlas 가 없거나 로드되지 않으면 pose 힌트로 플레이스홀더 픽셀 아트를 생성한다.",
+  "type": "object",
+  "required": ["sequences"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "sequences": {
+      "type": "object",
+      "propertyNames": { "pattern": "^(tori|uke|fx)\\.[a-z0-9_]+$" },
+      "additionalProperties": { "$ref": "#/$defs/sequence" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sequence": {
+      "type": "object",
+      "required": ["frames", "frameRate"],
+      "properties": {
+        "frames": { "type": "integer", "minimum": 1, "maximum": 24 },
+        "frameRate": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 12,
+          "description": "리미티드 애니메이션: 10~12fps 고정 (게임 루프는 60fps)"
+        },
+        "repeat": { "type": "integer", "minimum": -1, "default": 0, "description": "-1 = 무한 반복, 0 = 1회 후 마지막 프레임 유지" },
+        "holds": {
+          "description": "키포즈 유지: { \"프레임 인덱스\": 틱 수(≥2) } — 묵직한 정지감",
+          "type": "object",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "integer", "minimum": 2, "maximum": 12 }
+        },
+        "pose": {
+          "description": "플레이스홀더 생성용 포즈 힌트 (실제 아트가 있으면 무시)",
+          "enum": [
+            "stand", "windup", "strike", "step_in", "stagger", "hit", "lead", "drawn", "off_balance", "resist",
+            "recover", "lift_prep", "lifted", "cut", "thrown", "weak", "whiff", "zanshin", "roll", "sloppy",
+            "crash", "reach", "hold", "turn", "raise", "twisted", "stuck",
+            "fx_flash", "fx_soft", "fx_spark", "fx_ring", "fx_dust"
+          ]
+        },
+        "atlas": {
+          "description": "실제 스프라이트: 텍스처 아틀라스 키 + 프레임명 접두사 (예: prefix 'irimi_' → irimi_00..)",
+          "type": "object",
+          "required": ["texture", "prefix"],
+          "properties": {
+            "texture": { "type": "string" },
+            "prefix": { "type": "string" },
+            "start": { "type": "integer", "minimum": 0, "default": 0 },
+            "zeroPad": { "type": "integer", "minimum": 0, "default": 2 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

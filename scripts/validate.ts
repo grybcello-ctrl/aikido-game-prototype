@@ -1,4 +1,4 @@
-// 기술 데이터 검증: (1) JSON Schema (2) 엔진 의미 규칙 (3) 펼친 타임라인 미리보기
+// 데이터 검증: (1) JSON Schema (2) 엔진 의미 규칙 (3) 애니메이션 매니페스트 교차 검사 (4) 펼친 타임라인 미리보기
 // 사용: npm run validate
 import Ajv2020 from 'ajv/dist/2020.js';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -6,28 +6,53 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveTimeline } from '../src/engine/timeline';
 import { validateTechnique } from '../src/engine/validate';
+import type { AnimationManifest } from '../src/types/animations';
 import type { TechniqueData } from '../src/types/technique';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const schema = JSON.parse(readFileSync(join(root, 'schema/technique.schema.json'), 'utf8'));
+const readJson = (p: string): unknown => JSON.parse(readFileSync(join(root, p), 'utf8'));
 const ajv = new Ajv2020({ allErrors: true, strict: false });
-const validateSchema = ajv.compile(schema);
+const validateSchema = ajv.compile(readJson('schema/technique.schema.json') as object);
+const validateManifest = ajv.compile(readJson('schema/animations.schema.json') as object);
 
 let errors = 0;
+const fail = (msg: string) => {
+  errors++;
+  console.error(`  ✗ ${msg}`);
+};
+
+// ── 애니메이션 매니페스트 ──
+console.log('\n▶ data/animations.json');
+const manifest = readJson('data/animations.json') as AnimationManifest;
+if (!validateManifest(manifest)) for (const e of validateManifest.errors ?? []) fail(`schema ${e.instancePath || '(root)'} ${e.message}`);
+const seqKeys = new Set(Object.keys(manifest.sequences ?? {}));
+const usedKeys = new Set<string>(['tori.kamae', 'uke.kamae']); // 씬 대기 포즈
+console.log(`  시퀀스 ${seqKeys.size}개`);
+
+// ── 기술 데이터 ──
 const dir = join(root, 'data/techniques');
 for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
   console.log(`\n▶ ${f}`);
-  const data: unknown = JSON.parse(readFileSync(join(dir, f), 'utf8'));
-  if (!validateSchema(data)) {
-    for (const e of validateSchema.errors ?? []) console.error(`  ✗ schema ${e.instancePath || '(root)'} ${e.message}`);
-    errors += validateSchema.errors?.length ?? 1;
-  }
+  const data = readJson(`data/techniques/${f}`);
+  if (!validateSchema(data)) for (const e of validateSchema.errors ?? []) fail(`schema ${e.instancePath || '(root)'} ${e.message}`);
   const issues = validateTechnique(data);
-  for (const i of issues) console.error(`  ✗ ${i}`);
-  errors += issues.length;
+  issues.forEach(fail);
   if (issues.length) continue;
 
   const t = data as TechniqueData;
+  if (`${t.id}.json` !== f) console.warn(`  ⚠ 파일명(${f}) 과 id(${t.id}) 불일치`);
+
+  // 시퀀스 Key 가 매니페스트에 있는지, actor 접두사와 일치하는지
+  const cues = [
+    ...t.phases.flatMap((p) => [...p.animations, ...Object.values(p.onJudge ?? {}).flatMap((r) => r?.cues ?? [])]),
+    ...Object.values(t.ukemi.results).flatMap((r) => r.animations),
+  ];
+  for (const c of cues) {
+    usedKeys.add(c.key);
+    if (!seqKeys.has(c.key)) fail(`시퀀스 Key '${c.key}' 가 animations.json 에 없음`);
+    if (!c.key.startsWith(`${c.actor}.`)) fail(`'${c.key}' 는 actor '${c.actor}' 큐인데 접두사가 다름`);
+  }
+
   const { min, max } = t.phases[1].repeat;
   for (const n of [...new Set([min, t.phases[1].repeat.default, max])]) {
     const tl = resolveTimeline(t, n);
@@ -42,5 +67,8 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
       })));
   }
 }
-console.log(errors ? `\n✗ ${errors}개 오류` : '\n✓ 모든 기술 데이터 유효');
+
+const unused = [...seqKeys].filter((k) => !usedKeys.has(k));
+if (unused.length) console.warn(`\n⚠ 사용되지 않는 시퀀스: ${unused.join(', ')}`);
+console.log(errors ? `\n✗ ${errors}개 오류` : '\n✓ 모든 데이터 유효');
 process.exit(errors ? 1 : 0);

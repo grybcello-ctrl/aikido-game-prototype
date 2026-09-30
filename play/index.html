@@ -1,0 +1,2271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Aikido One-Button — aikido-game-prototype 0.1.0</title>
+<!-- 자동 생성 파일: npm run build:single (직접 수정하지 말 것) -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" />
+<style>
+  html, body { margin: 0; height: 100%; background: #050507; overflow: hidden; touch-action: none; }
+  #game { width: 100vw; height: 100vh; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<script>
+"use strict";
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // scripts/phaser-global.js
+  var phaser_global_default = window.Phaser;
+
+  // src/config/gameConfig.ts
+  var GAME_WIDTH = 640;
+  var GAME_HEIGHT = 360;
+  var FLOOR_Y = 300;
+  var STAGE_CENTER_X = GAME_WIDTH / 2;
+  var createGameConfig = (scenes, parent = "game") => ({
+    type: phaser_global_default.AUTO,
+    parent,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
+    backgroundColor: "#0d0d12",
+    pixelArt: true,
+    roundPixels: true,
+    antialias: false,
+    render: { pixelArt: true, antialias: false, roundPixels: true, powerPreference: "high-performance" },
+    scale: { mode: phaser_global_default.Scale.NONE, autoCenter: phaser_global_default.Scale.CENTER_BOTH, zoom: 1 },
+    fps: { target: 60, smoothStep: false },
+    input: { keyboard: true, touch: true, mouse: true },
+    scene: scenes
+  });
+  var installIntegerZoom = (game) => {
+    const apply = () => {
+      const ratio = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
+      game.scale.setZoom(ratio >= 1 ? Math.floor(ratio) : ratio);
+    };
+    window.addEventListener("resize", apply);
+    apply();
+    return () => window.removeEventListener("resize", apply);
+  };
+
+  // src/game/fonts.ts
+  var FONT_FAMILY = '"Nanum Gothic Coding", D2Coding, "Malgun Gothic", "Apple SD Gothic Neo", monospace';
+  var NON_ASCII = /[^\x00-\x7F]/g;
+  var glyphsIn = (...texts) => [...new Set(texts.join("").match(NON_ASCII) ?? [])].join("");
+  var loadFonts = async (glyphs, timeoutMs = 4e3) => {
+    if (typeof document === "undefined" || !document.fonts) return;
+    const sample = `${glyphs}ABC012`;
+    const load = Promise.all(["400", "700"].map((w) => document.fonts.load(`${w} 10px "Nanum Gothic Coding"`, sample)));
+    await Promise.race([load, new Promise((r) => setTimeout(r, timeoutMs))]).catch(() => void 0);
+  };
+
+  // data/animations.json
+  var animations_default = {
+    $schema: "../schema/animations.schema.json",
+    sequences: {
+      "tori.kamae": { frames: 4, frameRate: 10, repeat: -1, pose: "stand" },
+      "tori.irimi_enter": { frames: 4, frameRate: 12, holds: { "0": 2, "3": 3 }, pose: "step_in" },
+      "tori.irimi_stagger": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "stagger" },
+      "tori.hit_head": { frames: 5, frameRate: 12, holds: { "0": 2, "4": 4 }, pose: "hit" },
+      "tori.tenkan_lead": { frames: 5, frameRate: 10, holds: { "4": 2 }, pose: "lead" },
+      "tori.tenkan_turn": { frames: 5, frameRate: 12, holds: { "0": 2, "4": 3 }, pose: "turn" },
+      "tori.raise_arm": { frames: 5, frameRate: 10, holds: { "4": 2 }, pose: "raise" },
+      "tori.throw_windup": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "lift_prep" },
+      "tori.throw_cut": { frames: 4, frameRate: 12, holds: { "0": 2, "3": 4 }, pose: "cut" },
+      "tori.shiho_cut": { frames: 4, frameRate: 12, holds: { "0": 2, "3": 4 }, pose: "cut" },
+      "tori.throw_weak": { frames: 4, frameRate: 10, pose: "weak" },
+      "tori.throw_miss": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "whiff" },
+      "tori.grab_stuck": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "stuck" },
+      "tori.zanshin": { frames: 2, frameRate: 10, repeat: -1, holds: { "0": 6, "1": 6 }, pose: "zanshin" },
+      "uke.kamae": { frames: 4, frameRate: 10, repeat: -1, pose: "stand" },
+      "uke.shomen_windup": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "windup" },
+      "uke.shomen_strike": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "strike" },
+      "uke.grab_reach": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "reach" },
+      "uke.grab_hold": { frames: 3, frameRate: 10, holds: { "2": 4 }, pose: "hold" },
+      "uke.drawn_spiral": { frames: 5, frameRate: 10, pose: "drawn" },
+      "uke.twisted": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "twisted" },
+      "uke.off_balance": { frames: 3, frameRate: 12, holds: { "2": 3 }, pose: "off_balance" },
+      "uke.resist": { frames: 4, frameRate: 10, holds: { "3": 2 }, pose: "resist" },
+      "uke.recover": { frames: 4, frameRate: 10, pose: "recover" },
+      "uke.lifted": { frames: 4, frameRate: 10, holds: { "3": 3 }, pose: "lifted" },
+      "uke.thrown": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "thrown" },
+      "uke.thrown_back": { frames: 4, frameRate: 12, holds: { "3": 3 }, pose: "thrown" },
+      "uke.ukemi_back_roll": { frames: 6, frameRate: 12, holds: { "5": 4 }, pose: "roll" },
+      "uke.ukemi_sloppy": { frames: 6, frameRate: 10, holds: { "5": 4 }, pose: "sloppy" },
+      "uke.ukemi_crash": { frames: 5, frameRate: 10, holds: { "0": 2, "4": 6 }, pose: "crash" },
+      "fx.musubi_flash": { frames: 5, frameRate: 12, pose: "fx_flash" },
+      "fx.impact_flash": { frames: 5, frameRate: 12, pose: "fx_flash" },
+      "fx.contact_soft": { frames: 4, frameRate: 12, pose: "fx_soft" },
+      "fx.hit_spark": { frames: 4, frameRate: 12, pose: "fx_spark" },
+      "fx.kuzushi_ring": { frames: 5, frameRate: 12, pose: "fx_ring" },
+      "fx.dust": { frames: 5, frameRate: 10, pose: "fx_dust" }
+    }
+  };
+
+  // data/techniques/katatedori_shihonage.json
+  var katatedori_shihonage_default = {
+    $schema: "../../schema/technique.schema.json",
+    schemaVersion: 1,
+    id: "katatedori_shihonage",
+    name: "편손잡기 사방던지기",
+    description: "손목을 잡으러 오는 순간 텐칸으로 맞이하고, 팔을 N회 들어 올려 기울인 뒤 사방으로 베어 던진다.",
+    totalDurationMs: 3100,
+    input: { lockoutMs: 150 },
+    spacing: { startPx: 88, moveMs: 120, slackPx: { good: 6, bad: 14 } },
+    phases: [
+      {
+        type: "intro",
+        id: "tenkan_catch",
+        label: "도입 — 잡으러 오는 손을 텐칸으로 맞이",
+        durationMs: 900,
+        perfectMs: 550,
+        window: { perfect: 50, good: 100, bad: { early: 160, late: 150 } },
+        weight: 1,
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.kamae" },
+          { atMs: 0, actor: "uke", key: "uke.grab_reach" },
+          { atMs: 450, actor: "uke", key: "uke.grab_hold" },
+          { atMs: 550, actor: "tori", key: "tori.tenkan_turn" }
+        ],
+        onJudge: {
+          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.musubi_flash" }] },
+          good: { cues: [{ atMs: 0, actor: "fx", key: "fx.contact_soft" }] },
+          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.irimi_stagger" }] },
+          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.grab_stuck" }] }
+        },
+        spacing: { targetPx: 40, anchor: "center" }
+      },
+      {
+        type: "progression",
+        id: "raise_lead",
+        label: "진행 — 팔을 들어 올려 기울이기",
+        durationMs: 700,
+        perfectMs: 450,
+        window: { perfect: 45, good: 90, bad: 140 },
+        weight: 1,
+        repeat: { min: 1, max: 4, default: 2 },
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.raise_arm" },
+          { atMs: 0, actor: "uke", key: "uke.twisted" },
+          { atMs: 450, actor: "uke", key: "uke.off_balance" }
+        ],
+        onJudge: {
+          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.kuzushi_ring" }] },
+          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "uke", key: "uke.resist" }] },
+          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "uke", key: "uke.recover" }] }
+        },
+        spacing: { deltaPx: -4, anchor: "tori" }
+      },
+      {
+        type: "throw",
+        id: "shiho_cut",
+        label: "던지기 — 사방으로 베어 내리기",
+        durationMs: 800,
+        perfectMs: 450,
+        window: { perfect: 50, good: 100, bad: { early: 180, late: 160 } },
+        weight: 2,
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.throw_windup" },
+          { atMs: 0, actor: "uke", key: "uke.lifted" },
+          { atMs: 450, actor: "tori", key: "tori.shiho_cut" },
+          { atMs: 450, actor: "uke", key: "uke.thrown_back" }
+        ],
+        onJudge: {
+          perfect: { cues: [{ atMs: 0, actor: "fx", key: "fx.impact_flash" }] },
+          bad: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.throw_weak" }] },
+          miss: { replaceRemaining: true, cues: [{ atMs: 0, actor: "tori", key: "tori.throw_miss" }] }
+        },
+        spacing: { targetPx: 24, anchor: "tori", moveMs: 90 }
+      }
+    ],
+    scoring: {
+      points: { perfect: 100, good: 60, bad: 20, miss: 0 }
+    },
+    failure: {
+      abortOnMiss: ["intro", "throw"],
+      maxConsecutiveMiss: 2,
+      failOnNoInput: true
+    },
+    ukemi: {
+      thresholds: { perfect: 0.85, good: 0.55 },
+      results: {
+        perfect: {
+          label: "깨끗한 후방낙법",
+          durationMs: 900,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_back_roll" }
+          ],
+          spacing: { targetPx: 80, anchor: "uke", moveMs: 360 }
+        },
+        good: {
+          label: "흐트러진 낙법",
+          durationMs: 900,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_sloppy" }
+          ],
+          spacing: { targetPx: 66, anchor: "uke", moveMs: 300 }
+        },
+        bad: {
+          label: "낙법 실패 — 처박힘",
+          durationMs: 1100,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_crash" },
+            { atMs: 300, actor: "fx", key: "fx.dust" }
+          ],
+          spacing: { targetPx: 48, anchor: "uke", moveMs: 200 }
+        }
+      }
+    }
+  };
+
+  // data/techniques/shomenuchi_iriminage.json
+  var shomenuchi_iriminage_default = {
+    $schema: "../../schema/technique.schema.json",
+    schemaVersion: 1,
+    id: "shomenuchi_iriminage",
+    name: "정면타 입신던지기",
+    description: "정면타를 이리미로 맞이하고, 텐칸으로 N회 이끈 뒤 베어 내리듯 던진다.",
+    totalDurationMs: 3500,
+    input: {
+      lockoutMs: 150
+    },
+    spacing: {
+      startPx: 96,
+      moveMs: 120,
+      slackPx: {
+        good: 6,
+        bad: 14
+      }
+    },
+    phases: [
+      {
+        type: "intro",
+        id: "irimi",
+        label: "도입 — 정면타에 맞춰 이리미",
+        durationMs: 900,
+        perfectMs: 600,
+        window: {
+          perfect: 50,
+          good: 100,
+          bad: {
+            early: 180,
+            late: 150
+          }
+        },
+        weight: 1,
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.kamae" },
+          { atMs: 0, actor: "uke", key: "uke.shomen_windup" },
+          { atMs: 450, actor: "uke", key: "uke.shomen_strike" },
+          { atMs: 600, actor: "tori", key: "tori.irimi_enter" }
+        ],
+        onJudge: {
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.musubi_flash" }
+            ]
+          },
+          good: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.contact_soft" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.irimi_stagger" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.hit_head" },
+              { atMs: 0, actor: "fx", key: "fx.hit_spark" }
+            ]
+          }
+        },
+        spacing: {
+          targetPx: 44,
+          anchor: "tori"
+        }
+      },
+      {
+        type: "progression",
+        id: "tenkan_lead",
+        label: "진행 — 텐칸으로 이끌기",
+        durationMs: 600,
+        perfectMs: 400,
+        window: {
+          perfect: 40,
+          good: 80,
+          bad: 130
+        },
+        weight: 1,
+        repeat: {
+          min: 1,
+          max: 5,
+          default: 3
+        },
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.tenkan_lead" },
+          { atMs: 0, actor: "uke", key: "uke.drawn_spiral" },
+          { atMs: 400, actor: "uke", key: "uke.off_balance" }
+        ],
+        onJudge: {
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.kuzushi_ring" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "uke", key: "uke.resist" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "uke", key: "uke.recover" }
+            ]
+          }
+        },
+        spacing: {
+          deltaPx: -4,
+          anchor: "center"
+        }
+      },
+      {
+        type: "throw",
+        id: "cut_down",
+        label: "던지기 — 베어 내리기",
+        durationMs: 800,
+        perfectMs: 500,
+        window: {
+          perfect: 50,
+          good: 100,
+          bad: {
+            early: 200,
+            late: 150
+          }
+        },
+        weight: 2,
+        animations: [
+          { atMs: 0, actor: "tori", key: "tori.throw_windup" },
+          { atMs: 0, actor: "uke", key: "uke.lifted" },
+          { atMs: 500, actor: "tori", key: "tori.throw_cut" },
+          { atMs: 500, actor: "uke", key: "uke.thrown" }
+        ],
+        onJudge: {
+          perfect: {
+            cues: [
+              { atMs: 0, actor: "fx", key: "fx.impact_flash" }
+            ]
+          },
+          bad: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.throw_weak" }
+            ]
+          },
+          miss: {
+            replaceRemaining: true,
+            cues: [
+              { atMs: 0, actor: "tori", key: "tori.throw_miss" }
+            ]
+          }
+        },
+        spacing: {
+          targetPx: 28,
+          anchor: "tori",
+          moveMs: 90
+        }
+      }
+    ],
+    scoring: {
+      points: {
+        perfect: 100,
+        good: 60,
+        bad: 20,
+        miss: 0
+      }
+    },
+    failure: {
+      abortOnMiss: [
+        "intro",
+        "throw"
+      ],
+      maxConsecutiveMiss: 2,
+      failOnNoInput: true
+    },
+    ukemi: {
+      thresholds: {
+        perfect: 0.85,
+        good: 0.55
+      },
+      results: {
+        perfect: {
+          label: "깨끗한 후방낙법",
+          durationMs: 900,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_back_roll" }
+          ],
+          spacing: {
+            targetPx: 84,
+            anchor: "uke",
+            moveMs: 360
+          }
+        },
+        good: {
+          label: "흐트러진 낙법",
+          durationMs: 900,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_sloppy" }
+          ],
+          spacing: {
+            targetPx: 70,
+            anchor: "uke",
+            moveMs: 300
+          }
+        },
+        bad: {
+          label: "낙법 실패 — 처박힘",
+          durationMs: 1100,
+          animations: [
+            { atMs: 0, actor: "tori", key: "tori.zanshin" },
+            { atMs: 0, actor: "uke", key: "uke.ukemi_crash" },
+            { atMs: 300, actor: "fx", key: "fx.dust" }
+          ],
+          spacing: {
+            targetPx: 52,
+            anchor: "uke",
+            moveMs: 200
+          }
+        }
+      }
+    }
+  };
+
+  // src/engine/errors.ts
+  var TechniqueDataError = class extends Error {
+    constructor(techniqueId, issues) {
+      super(`[${techniqueId}] 기술 데이터 오류 ${issues.length}건:
+ - ${issues.join("\n - ")}`);
+      __publicField(this, "techniqueId", techniqueId);
+      __publicField(this, "issues", issues);
+      __publicField(this, "name", "TechniqueDataError");
+    }
+  };
+  var EngineArgumentError = class extends RangeError {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "name", "EngineArgumentError");
+    }
+  };
+
+  // src/engine/judge.ts
+  var tierOf = (t) => typeof t === "number" ? { early: t, late: t } : t;
+  var judgeOffset = (w, d) => {
+    const side = d < 0 ? "early" : "late";
+    const a = Math.abs(d);
+    if (a <= tierOf(w.perfect)[side]) return "perfect";
+    if (a <= tierOf(w.good)[side]) return "good";
+    if (a <= tierOf(w.bad)[side]) return "bad";
+    return null;
+  };
+
+  // src/engine/scoring.ts
+  var EPS = 1e-9;
+  var pointsFor = (scoring, grade, weight) => scoring.points[grade] * weight;
+  var decideUkemi = (ratio, thresholds) => {
+    if (!Number.isFinite(ratio)) return "bad";
+    if (ratio + EPS >= thresholds.perfect) return "perfect";
+    if (ratio + EPS >= thresholds.good) return "good";
+    return "bad";
+  };
+  var ScoreBoard = class {
+    constructor(scoring, beats) {
+      __publicField(this, "scoring", scoring);
+      __publicField(this, "beats", beats);
+      __publicField(this, "records", []);
+      __publicField(this, "raw", 0);
+      __publicField(this, "counts", { perfect: 0, good: 0, bad: 0, miss: 0 });
+      __publicField(this, "max");
+      this.max = beats.reduce((s, b) => s + pointsFor(scoring, "perfect", b.weight), 0);
+    }
+    add(beatIndex, grade, offsetMs) {
+      const beat = this.beats[beatIndex];
+      if (!beat) throw new RangeError(`beatIndex ${beatIndex} 범위 밖`);
+      if (this.records.some((r) => r.beatIndex === beatIndex)) throw new Error(`beat ${beatIndex} 중복 판정`);
+      const rec = { beatIndex, grade, offsetMs, points: pointsFor(this.scoring, grade, beat.weight) };
+      this.records.push(rec);
+      this.raw += rec.points;
+      this.counts[grade]++;
+      return rec;
+    }
+    get total() {
+      return this.raw;
+    }
+    get judgements() {
+      return this.records.map((r) => ({ ...r }));
+    }
+    snapshot() {
+      return {
+        raw: this.raw,
+        max: this.max,
+        ratio: this.max > 0 ? this.raw / this.max : 0,
+        counts: { ...this.counts },
+        judged: this.records.length,
+        total: this.beats.length
+      };
+    }
+    /** 모든 비트 판정 후 최종 요약 + 낙법 결정 */
+    summarize(thresholds) {
+      const s = this.snapshot();
+      return { raw: s.raw, max: s.max, ratio: s.ratio, counts: s.counts, ukemi: decideUkemi(s.ratio, thresholds) };
+    }
+  };
+
+  // src/engine/timeline.ts
+  var assertProgressionCount = (data, n) => {
+    const { min, max } = data.phases[1].repeat;
+    if (!Number.isInteger(n) || n < min || n > max) {
+      throw new EngineArgumentError(`progressionCount 는 ${min}~${max} 사이 정수여야 함 (받은 값: ${n})`);
+    }
+  };
+  var beatPhases = (data, n) => {
+    const [intro, prog, thr] = data.phases;
+    return [
+      { phase: intro, iteration: 0 },
+      ...Array.from({ length: n }, (_, i) => ({ phase: prog, iteration: i })),
+      { phase: thr, iteration: 0 }
+    ];
+  };
+  var resolveTimeline = (data, progressionCount) => {
+    assertProgressionCount(data, progressionCount);
+    const beats = [];
+    const cues = [];
+    let clock = 0;
+    beatPhases(data, progressionCount).forEach(({ phase, iteration }, index) => {
+      const at = clock + phase.perfectMs;
+      const range = (t) => {
+        const { early, late } = tierOf(t);
+        return [at - early, at + late];
+      };
+      beats.push({
+        index,
+        phaseType: phase.type,
+        phaseId: phase.id,
+        iteration,
+        startMs: clock,
+        endMs: clock + phase.durationMs,
+        perfectAtMs: at,
+        window: { perfect: range(phase.window.perfect), good: range(phase.window.good), bad: range(phase.window.bad) },
+        weight: phase.weight ?? 1
+      });
+      for (const c of phase.animations) cues.push({ ...c, absMs: clock + c.atMs, beatIndex: index });
+      clock += phase.durationMs;
+    });
+    return {
+      techniqueId: data.id,
+      progressionCount,
+      totalDurationMs: clock,
+      beats,
+      cues,
+      ukemiStartMs: clock
+    };
+  };
+
+  // src/engine/validate.ts
+  var PHASE_TYPES = ["intro", "progression", "throw"];
+  var ACTORS = /* @__PURE__ */ new Set(["tori", "uke", "fx"]);
+  var GRADES = /* @__PURE__ */ new Set(["perfect", "good", "bad", "miss"]);
+  var UKEMI = ["perfect", "good", "bad"];
+  var ID = /^[a-z0-9_]+$/;
+  var KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)*$/;
+  var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+  var isMs = (v) => Number.isInteger(v) && v >= 0;
+  var isPosInt = (v) => Number.isInteger(v) && v >= 1;
+  var readTier = (v) => {
+    if (isMs(v)) return { early: v, late: v };
+    if (isObj(v) && isMs(v.early) && isMs(v.late)) return { early: v.early, late: v.late };
+    return null;
+  };
+  var validateTechnique = (input) => {
+    const issues = [];
+    const err = (path, msg) => issues.push(`${path}: ${msg}`);
+    if (!isObj(input)) return ["(root): 객체가 아님"];
+    const t = input;
+    if (t.schemaVersion !== 1) err("schemaVersion", `1 이어야 함 (받은 값: ${String(t.schemaVersion)})`);
+    if (typeof t.id !== "string" || !ID.test(t.id)) err("id", "`^[a-z0-9_]+$` 형식 문자열이어야 함");
+    if (typeof t.name !== "string" || !t.name) err("name", "비어 있지 않은 문자열이어야 함");
+    if (!isPosInt(t.totalDurationMs)) err("totalDurationMs", "1 이상 정수여야 함");
+    const cueList = (v, path, durationMs, minItems) => {
+      if (!Array.isArray(v)) {
+        err(path, "배열이어야 함");
+        return [];
+      }
+      if (v.length < minItems) err(path, `큐 ${minItems}개 이상 필요`);
+      const ok = [];
+      v.forEach((c, i) => {
+        const p = `${path}[${i}]`;
+        if (!isObj(c)) return err(p, "객체가 아님");
+        if (!isMs(c.atMs)) err(`${p}.atMs`, "0 이상 정수여야 함");
+        else if (durationMs !== null && c.atMs >= durationMs) err(`${p}.atMs`, `${c.atMs} ≥ durationMs(${durationMs})`);
+        if (typeof c.actor !== "string" || !ACTORS.has(c.actor)) err(`${p}.actor`, "tori | uke | fx 중 하나");
+        if (typeof c.key !== "string" || !KEY.test(c.key)) err(`${p}.key`, `시퀀스 Key 형식 오류 (${String(c.key)})`);
+        ok.push(c);
+      });
+      return ok;
+    };
+    const phaseDurations = [];
+    let repeatDefault = null;
+    if (!Array.isArray(t.phases) || t.phases.length !== 3) {
+      err("phases", "[intro, progression, throw] 3개 배열이어야 함");
+    } else {
+      t.phases.forEach((ph, i) => {
+        const path = `phases[${i}]`;
+        const expected = PHASE_TYPES[i];
+        if (!isObj(ph)) return err(path, "객체가 아님");
+        if (ph.type !== expected) err(`${path}.type`, `'${expected}' 이어야 함 (순서 고정)`);
+        if (typeof ph.id !== "string" || !ID.test(ph.id)) err(`${path}.id`, "`^[a-z0-9_]+$` 형식이어야 함");
+        const label = `${path}(${String(ph.id)})`;
+        const dur = isPosInt(ph.durationMs) ? ph.durationMs : null;
+        if (dur === null) err(`${label}.durationMs`, "1 이상 정수여야 함");
+        else phaseDurations.push(dur);
+        const perfectMs = isMs(ph.perfectMs) ? ph.perfectMs : null;
+        if (perfectMs === null) err(`${label}.perfectMs`, "0 이상 정수여야 함");
+        if (ph.weight !== void 0 && !(typeof ph.weight === "number" && Number.isFinite(ph.weight) && ph.weight > 0))
+          err(`${label}.weight`, "0 보다 큰 수여야 함");
+        const w = ph.window;
+        if (!isObj(w)) {
+          err(`${label}.window`, "perfect/good/bad 객체가 필요");
+        } else {
+          const P = readTier(w.perfect);
+          const G = readTier(w.good);
+          const B = readTier(w.bad);
+          if (!P) err(`${label}.window.perfect`, "0 이상 정수 또는 {early, late}");
+          if (!G) err(`${label}.window.good`, "0 이상 정수 또는 {early, late}");
+          if (!B) err(`${label}.window.bad`, "0 이상 정수 또는 {early, late}");
+          if (P && G && B) {
+            for (const side of ["early", "late"])
+              if (!(P[side] <= G[side] && G[side] <= B[side]))
+                err(`${label}.window`, `perfect ≤ good ≤ bad 위반 (${side}: ${P[side]} / ${G[side]} / ${B[side]})`);
+            if (perfectMs !== null && dur !== null) {
+              if (perfectMs - B.early < 0) err(`${label}.window.bad`, `구간 시작 ${perfectMs - B.early}ms 가 페이즈 시작(0) 이전`);
+              if (perfectMs + B.late > dur) err(`${label}.window.bad`, `구간 끝 ${perfectMs + B.late}ms 가 페이즈 끝(${dur}) 이후`);
+            }
+          }
+        }
+        cueList(ph.animations, `${label}.animations`, dur, 1);
+        if (ph.onJudge !== void 0) {
+          if (!isObj(ph.onJudge)) err(`${label}.onJudge`, "객체가 아님");
+          else
+            for (const [g, r] of Object.entries(ph.onJudge)) {
+              const p = `${label}.onJudge.${g}`;
+              if (!GRADES.has(g)) err(p, "알 수 없는 등급 (perfect | good | bad | miss)");
+              if (!isObj(r)) {
+                err(p, "객체가 아님");
+                continue;
+              }
+              if (r.replaceRemaining !== void 0 && typeof r.replaceRemaining !== "boolean") err(`${p}.replaceRemaining`, "boolean");
+              cueList(r.cues, `${p}.cues`, null, 1);
+            }
+        }
+        if (expected === "progression") {
+          const r = ph.repeat;
+          if (!isObj(r) || !isPosInt(r.min) || !isPosInt(r.max) || !isPosInt(r.default)) {
+            err(`${label}.repeat`, "{min, max, default} 모두 1 이상 정수");
+          } else if (!(r.min <= r.default && r.default <= r.max)) {
+            err(`${label}.repeat`, `min ≤ default ≤ max 위반 (${r.min} / ${r.default} / ${r.max})`);
+          } else {
+            repeatDefault = r.default;
+          }
+        } else if (ph.repeat !== void 0) {
+          err(`${label}.repeat`, "진행부에만 허용");
+        }
+      });
+      if (phaseDurations.length === 3 && repeatDefault !== null && isPosInt(t.totalDurationMs)) {
+        const [a, b, c] = phaseDurations;
+        const sum = a + b * repeatDefault + c;
+        if (sum !== t.totalDurationMs)
+          err("totalDurationMs", `${t.totalDurationMs} ≠ ${a} + ${b}×${repeatDefault} + ${c} = ${sum}`);
+      }
+    }
+    if (t.input !== void 0) {
+      if (!isObj(t.input)) err("input", "객체가 아님");
+      else if (t.input.lockoutMs !== void 0 && !isMs(t.input.lockoutMs)) err("input.lockoutMs", "0 이상 정수");
+    }
+    const pts = isObj(t.scoring) && isObj(t.scoring.points) ? t.scoring.points : null;
+    if (!pts) {
+      err("scoring.points", "{perfect, good, bad, miss} 필요");
+    } else {
+      const vals = ["perfect", "good", "bad", "miss"].map((g) => pts[g]);
+      if (!vals.every(isMs)) err("scoring.points", "모든 값이 0 이상 정수여야 함");
+      else {
+        const [p, g, b, m] = vals;
+        if (p <= 0) err("scoring.points.perfect", "0 보다 커야 함");
+        if (!(p >= g && g >= b && b >= m)) err("scoring.points", `perfect ≥ good ≥ bad ≥ miss 위반 (${p} / ${g} / ${b} / ${m})`);
+      }
+    }
+    if (!isObj(t.ukemi)) {
+      err("ukemi", "객체가 필요");
+    } else {
+      const th = t.ukemi.thresholds;
+      const inUnit = (v) => typeof v === "number" && v >= 0 && v <= 1;
+      if (!isObj(th) || !inUnit(th.perfect) || !inUnit(th.good)) err("ukemi.thresholds", "perfect/good 는 0~1 사이 수");
+      else if (!(th.perfect > th.good)) err("ukemi.thresholds", `perfect(${th.perfect}) > good(${th.good}) 이어야 함`);
+      const res = t.ukemi.results;
+      if (!isObj(res)) err("ukemi.results", "객체가 필요");
+      else
+        for (const g of UKEMI) {
+          const r = res[g];
+          const p = `ukemi.results.${g}`;
+          if (!isObj(r)) {
+            err(p, "누락");
+            continue;
+          }
+          const dur = isPosInt(r.durationMs) ? r.durationMs : null;
+          if (dur === null) err(`${p}.durationMs`, "1 이상 정수");
+          const cues = cueList(r.animations, `${p}.animations`, dur, 1);
+          if (!cues.some((c) => c.actor === "uke")) err(`${p}.animations`, "uke 큐가 1개 이상 필요");
+        }
+    }
+    if (t.failure !== void 0) {
+      const f = t.failure;
+      if (!isObj(f)) err("failure", "객체가 아님");
+      else {
+        if (f.abortOnMiss !== void 0) {
+          const ok = Array.isArray(f.abortOnMiss) && f.abortOnMiss.every((x) => PHASE_TYPES.includes(x)) && new Set(f.abortOnMiss).size === f.abortOnMiss.length;
+          if (!ok) err("failure.abortOnMiss", "intro | progression | throw 의 중복 없는 배열");
+        }
+        if (f.maxConsecutiveMiss !== void 0 && !isPosInt(f.maxConsecutiveMiss)) err("failure.maxConsecutiveMiss", "1 이상 정수");
+        if (f.failOnNoInput !== void 0 && typeof f.failOnNoInput !== "boolean") err("failure.failOnNoInput", "boolean");
+      }
+    }
+    const moves = [];
+    const checkMove = (v, path) => {
+      if (v === void 0) return;
+      if (!isObj(v)) return err(path, "객체가 아님");
+      const hasT = v.targetPx !== void 0;
+      const hasD = v.deltaPx !== void 0;
+      if (hasT === hasD) err(path, "targetPx 또는 deltaPx 중 정확히 하나");
+      if (hasT && !isMs(v.targetPx)) err(`${path}.targetPx`, "0 이상 정수");
+      if (hasD && !Number.isInteger(v.deltaPx)) err(`${path}.deltaPx`, "정수");
+      if (v.anchor !== void 0 && !["tori", "uke", "center"].includes(v.anchor)) err(`${path}.anchor`, "tori | uke | center");
+      if (v.moveMs !== void 0 && !isMs(v.moveMs)) err(`${path}.moveMs`, "0 이상 정수");
+      moves.push({ path, move: v });
+    };
+    if (Array.isArray(t.phases)) t.phases.forEach((ph, i) => isObj(ph) && checkMove(ph.spacing, `phases[${i}].spacing`));
+    if (isObj(t.ukemi) && isObj(t.ukemi.results))
+      for (const g of UKEMI) {
+        const r = t.ukemi.results[g];
+        if (isObj(r)) checkMove(r.spacing, `ukemi.results.${g}.spacing`);
+      }
+    const sp = t.spacing;
+    if (sp !== void 0) {
+      if (!isObj(sp)) err("spacing", "객체가 아님");
+      else {
+        if (!isMs(sp.startPx)) err("spacing.startPx", "0 이상 정수");
+        if (sp.moveMs !== void 0 && !isMs(sp.moveMs)) err("spacing.moveMs", "0 이상 정수");
+        if (sp.slackPx !== void 0) {
+          if (!isObj(sp.slackPx)) err("spacing.slackPx", "객체가 아님");
+          else for (const k of ["good", "bad"]) if (sp.slackPx[k] !== void 0 && !isMs(sp.slackPx[k])) err(`spacing.slackPx.${k}`, "0 이상 정수");
+        }
+      }
+    } else if (moves.length) {
+      err("spacing", "페이즈/낙법에 spacing 이 있으면 spacing.startPx 필요");
+    }
+    if (issues.length === 0 && isObj(sp) && Array.isArray(t.phases) && isObj(t.phases[1]) && isObj(t.phases[1].repeat)) {
+      const [p0, p1, p2] = t.phases;
+      const { min, max } = t.phases[1].repeat;
+      const apply = (d, m) => !isObj(m) ? d : m.targetPx !== void 0 ? m.targetPx : d + m.deltaPx;
+      for (let n = min; n <= max; n++) {
+        let d = sp.startPx;
+        const seq = [p0, ...Array.from({ length: n }, () => p1), p2];
+        for (const [i, ph] of seq.entries()) {
+          d = apply(d, ph?.spacing);
+          if (d < 0) {
+            err("spacing", `N=${n}: ${i}번째 판정 후 거리 ${d}px < 0`);
+            break;
+          }
+        }
+        if (d >= 0 && isObj(t.ukemi) && isObj(t.ukemi.results))
+          for (const g of UKEMI) {
+            const r = t.ukemi.results[g];
+            const after = isObj(r) ? apply(d, r.spacing) : d;
+            if (after < 0) err(`ukemi.results.${g}.spacing`, `N=${n}: 낙법 후 거리 ${after}px < 0`);
+          }
+      }
+    }
+    return issues;
+  };
+
+  // src/engine/TimingEngine.ts
+  var STRICT = /* @__PURE__ */ new Set(["close", "throwEnd", "ukemiEnd"]);
+  var ORDER = { close: 0, throwEnd: 1, ukemiEnd: 2, enter: 3, cue: 4, open: 5 };
+  var MAX_STEPS = 1e5;
+  var assertTime = (name, v) => {
+    if (typeof v !== "number" || !Number.isFinite(v)) throw new EngineArgumentError(`${name} 는 유한한 숫자(ms)여야 함 (받은 값: ${String(v)})`);
+  };
+  var TimingEngine = class {
+    /**
+     * @throws TechniqueDataError 데이터가 규칙을 위반하면 (문제 목록 포함)
+     * @throws EngineArgumentError progressionCount 가 범위 밖이면
+     */
+    constructor(data, options = {}) {
+      __publicField(this, "options", options);
+      __publicField(this, "data");
+      __publicField(this, "listeners", /* @__PURE__ */ new Set());
+      __publicField(this, "onListenerError");
+      __publicField(this, "baseFailure");
+      __publicField(this, "timelineCache");
+      __publicField(this, "phases", []);
+      __publicField(this, "status", "idle");
+      __publicField(this, "origin", 0);
+      __publicField(this, "pauses", []);
+      __publicField(this, "pausedAt", null);
+      __publicField(this, "lastUpdate", -Infinity);
+      __publicField(this, "now", 0);
+      __publicField(this, "items", []);
+      __publicField(this, "seq", 0);
+      __publicField(this, "queue", []);
+      __publicField(this, "judged", []);
+      __publicField(this, "board");
+      __publicField(this, "failure");
+      __publicField(this, "consecutiveMiss", 0);
+      __publicField(this, "presses", 0);
+      __publicField(this, "lockedUntil", null);
+      __publicField(this, "result", null);
+      __publicField(this, "outbox", []);
+      const issues = validateTechnique(data);
+      if (issues.length) throw new TechniqueDataError(typeof data?.id === "string" ? data.id : "(unknown)", issues);
+      this.data = data;
+      this.onListenerError = options.onListenerError ?? ((e) => queueMicrotask(() => {
+        throw e;
+      }));
+      this.baseFailure = this.resolveFailure(options.failure);
+      this.failure = this.baseFailure;
+      const n = options.progressionCount ?? data.phases[1].repeat.default;
+      this.timelineCache = resolveTimeline(data, n);
+      this.board = new ScoreBoard(data.scoring, this.timelineCache.beats);
+    }
+    // ───────────────────────────── public API ─────────────────────────────
+    /** 이번 판 타임라인 (start 전에도 기본 N 기준으로 조회 가능) */
+    get timeline() {
+      return this.timelineCache;
+    }
+    on(listener) {
+      this.listeners.add(listener);
+      return () => this.listeners.delete(listener);
+    }
+    /**
+     * 기술 시작 (진행 중이어도 처음부터 다시 시작).
+     * @param nowMs 호출자 시계의 현재 시각
+     * @param progressionCount 이번 판 진행부 횟수 (생략 시 생성자 옵션 → repeat.default)
+     */
+    start(nowMs, progressionCount) {
+      assertTime("nowMs", nowMs);
+      const n = progressionCount ?? this.options.progressionCount ?? this.data.phases[1].repeat.default;
+      assertProgressionCount(this.data, n);
+      this.timelineCache = resolveTimeline(this.data, n);
+      this.phases = beatPhases(this.data, n).map((b) => b.phase);
+      this.board = new ScoreBoard(this.data.scoring, this.timelineCache.beats);
+      this.failure = this.baseFailure;
+      this.status = "running";
+      this.origin = nowMs;
+      this.pauses = [];
+      this.pausedAt = null;
+      this.lastUpdate = nowMs;
+      this.now = 0;
+      this.items = [];
+      this.queue = [];
+      this.judged = this.timelineCache.beats.map(() => false);
+      this.consecutiveMiss = 0;
+      this.presses = 0;
+      this.lockedUntil = null;
+      this.result = null;
+      for (const b of this.timelineCache.beats) {
+        this.schedule({ kind: "enter", at: b.startMs, beat: b.index });
+        this.schedule({ kind: "open", at: b.window.bad[0], beat: b.index });
+        this.schedule({ kind: "close", at: b.window.bad[1], beat: b.index });
+      }
+      for (const c of this.timelineCache.cues)
+        this.schedule({ kind: "cue", at: c.absMs, beat: c.beatIndex, actor: c.actor, key: c.key, source: "phase" });
+      this.schedule({ kind: "throwEnd", at: this.timelineCache.totalDurationMs });
+      this.emit({ type: "start", atMs: 0, progressionCount: n, totalDurationMs: this.timelineCache.totalDurationMs });
+      this.advanceTo(0);
+      return this.flush();
+    }
+    /**
+     * 원버튼 입력 (터치 / 스페이스바). 실제 처리는 다음 update() 에서 타임스탬프 순으로.
+     * @param atMs 입력이 발생한 시각 (KeyboardEvent.timeStamp 등, start 와 같은 시계)
+     */
+    press(atMs) {
+      assertTime("atMs", atMs);
+      if (this.status === "idle") {
+        this.emit({ type: "inputIgnored", atMs: null, reason: "not_running" });
+        return;
+      }
+      this.queue.push({ at: atMs, seq: this.seq++ });
+    }
+    /** 매 프레임 호출. 큐의 입력과 예약 이벤트(구간 열림/닫힘, 페이즈 전환, 큐)를 시간순 처리 */
+    update(nowMs) {
+      assertTime("nowMs", nowMs);
+      this.step(nowMs);
+      return this.flush();
+    }
+    /** update 본체 (flush 없음) — pause/abort 가 처리한 이벤트까지 한 번에 반환하기 위해 분리 */
+    step(nowMs) {
+      if (this.status === "idle") return;
+      const target = Math.max(nowMs, this.lastUpdate);
+      this.lastUpdate = target;
+      this.queue.sort((a, b) => a.at - b.at || a.seq - b.seq);
+      let i = 0;
+      for (; i < this.queue.length && this.queue[i].at <= target; i++) {
+        const q = this.queue[i];
+        const { t, paused } = this.toLocal(q.at);
+        this.advanceTo(t);
+        if (paused) this.ignore("paused");
+        else this.applyPress(t);
+      }
+      this.queue.splice(0, i);
+      this.advanceTo(this.toLocal(target).t);
+    }
+    /** 일시정지. 이 시각 이후 입력은 무시되고 엔진 시간이 멈춘다 */
+    pause(nowMs) {
+      assertTime("nowMs", nowMs);
+      if (this.status === "idle" || this.status === "finished" || this.pausedAt !== null) return this.flush();
+      this.step(nowMs);
+      this.pausedAt = Math.max(nowMs, this.lastUpdate);
+      this.emit({ type: "paused", atMs: this.now });
+      return this.flush();
+    }
+    resume(nowMs) {
+      assertTime("nowMs", nowMs);
+      if (this.pausedAt === null) return this.flush();
+      const end = Math.max(nowMs, this.pausedAt);
+      this.pauses.push([this.pausedAt, end]);
+      this.pausedAt = null;
+      this.lastUpdate = Math.max(this.lastUpdate, end);
+      this.emit({ type: "resumed", atMs: this.now });
+      return this.flush();
+    }
+    /** 진행 중 강제 종료 (플레이어 이탈 등) → 실패 처리 */
+    abort(nowMs) {
+      assertTime("nowMs", nowMs);
+      if (this.status !== "running") return this.flush();
+      this.step(nowMs);
+      if (this.status === "running") this.fail({ type: "aborted" });
+      return this.flush();
+    }
+    getResult() {
+      return this.result;
+    }
+    getState() {
+      const beats = this.timelineCache.beats;
+      const t = this.now;
+      const running = this.status !== "idle";
+      const cur = running ? beats.find((b) => t >= b.startMs && t < b.endMs) : void 0;
+      const next = running ? beats.find((b) => !this.judged[b.index]) : void 0;
+      const open = running && this.status === "running" ? beats.find((b) => !this.judged[b.index] && t >= b.window.bad[0] && t <= b.window.bad[1]) : void 0;
+      return {
+        status: this.status,
+        paused: this.pausedAt !== null,
+        nowMs: t,
+        progressionCount: this.timelineCache.progressionCount,
+        totalDurationMs: this.timelineCache.totalDurationMs,
+        beatIndex: cur?.index ?? null,
+        nextJudgeBeat: this.status === "running" ? next?.index ?? null : null,
+        openWindowBeat: open?.index ?? null,
+        score: this.board.snapshot(),
+        consecutiveMiss: this.consecutiveMiss,
+        presses: this.presses,
+        lockedUntilMs: this.lockedUntil !== null && this.lockedUntil > t ? this.lockedUntil : null,
+        result: this.result
+      };
+    }
+    // ───────────────────────────── clock ─────────────────────────────
+    /** 호출자 시각 → 엔진 로컬 시간. 일시정지 구간 안이면 paused */
+    toLocal(abs) {
+      let off = this.origin;
+      for (const [s, e] of this.pauses) {
+        if (abs < s) break;
+        if (abs < e) return { t: s - off, paused: true };
+        off += e - s;
+      }
+      if (this.pausedAt !== null && abs >= this.pausedAt) return { t: this.pausedAt - off, paused: true };
+      return { t: abs - off, paused: false };
+    }
+    // ───────────────────────────── scheduler ─────────────────────────────
+    schedule(item) {
+      this.items.push({ ...item, seq: this.seq++ });
+    }
+    isDue(it, t) {
+      return STRICT.has(it.kind) ? it.at < t : it.at <= t;
+    }
+    /** t 시점까지 도래한 예약 이벤트를 순서대로 발생 */
+    advanceTo(t) {
+      for (let step = 0; ; step++) {
+        if (step > MAX_STEPS) throw new Error("[TimingEngine] 스케줄러가 수렴하지 않음");
+        let best = -1;
+        for (let i = 0; i < this.items.length; i++) {
+          const it2 = this.items[i];
+          if (!this.isDue(it2, t)) continue;
+          const b = best >= 0 ? this.items[best] : null;
+          if (!b || it2.at < b.at || it2.at === b.at && (ORDER[it2.kind] - ORDER[b.kind] || it2.seq - b.seq) < 0) best = i;
+        }
+        if (best < 0) break;
+        const [it] = this.items.splice(best, 1);
+        this.now = Math.max(this.now, it.at);
+        this.fire(it);
+        this.maybeFinishAftermath();
+      }
+      this.now = Math.max(this.now, t);
+    }
+    fire(it) {
+      const beat = it.beat !== void 0 ? this.timelineCache.beats[it.beat] : void 0;
+      switch (it.kind) {
+        case "enter":
+          if (beat) this.emit({
+            type: "phaseEnter",
+            atMs: it.at,
+            beatIndex: beat.index,
+            phaseType: beat.phaseType,
+            phaseId: beat.phaseId,
+            iteration: beat.iteration
+          });
+          break;
+        case "open":
+          if (beat) this.emit({ type: "windowOpen", atMs: it.at, beatIndex: beat.index, perfectAtMs: beat.perfectAtMs, closeAtMs: beat.window.bad[1] });
+          break;
+        case "cue":
+          this.emit({ type: "cue", atMs: it.at, actor: it.actor, key: it.key, beatIndex: it.beat ?? null, source: it.source ?? "phase" });
+          break;
+        case "close":
+          if (beat && !this.judged[beat.index] && this.status === "running") this.judge(beat, "miss", null, it.at, 0);
+          break;
+        case "throwEnd":
+          if (this.status === "running") this.startUkemi(it.at);
+          break;
+        case "ukemiEnd":
+          if (this.status === "ukemi") this.finish(it.at);
+          break;
+      }
+    }
+    // ───────────────────────────── input ─────────────────────────────
+    ignore(reason, lockedUntilMs) {
+      this.emit({ type: "inputIgnored", atMs: this.now, reason, ...lockedUntilMs !== void 0 ? { lockedUntilMs } : {} });
+    }
+    /** @param t 입력의 엔진 로컬 시각 (처리 커서보다 이르면 커서로 당겨 처리) */
+    applyPress(t) {
+      const at = Math.max(t, this.now);
+      const clampedMs = at - t;
+      if (this.status !== "running") return this.ignore("not_running");
+      this.presses++;
+      if (this.lockedUntil !== null && at < this.lockedUntil) return this.ignore("lockout", this.lockedUntil);
+      let hitJudged = false;
+      for (const b of this.timelineCache.beats) {
+        const [from, to] = b.window.bad;
+        if (at < from || at > to) continue;
+        if (this.judged[b.index]) {
+          hitJudged = true;
+          continue;
+        }
+        const d = at - b.perfectAtMs;
+        const grade = judgeOffset(this.phases[b.index].window, d) ?? "bad";
+        this.judge(b, grade, d, at, clampedMs);
+        return;
+      }
+      if (hitJudged) return this.ignore("already_judged");
+      const lockout = this.data.input?.lockoutMs ?? 0;
+      if (lockout > 0) {
+        this.lockedUntil = at + lockout;
+        return this.ignore("outside_window", this.lockedUntil);
+      }
+      this.ignore("outside_window");
+    }
+    // ───────────────────────────── judgement ─────────────────────────────
+    judge(beat, grade, offsetMs, at, clampedMs) {
+      this.judged[beat.index] = true;
+      const rec = this.board.add(beat.index, grade, offsetMs);
+      this.emit({
+        type: "judge",
+        atMs: at,
+        beatIndex: beat.index,
+        phaseType: beat.phaseType,
+        phaseId: beat.phaseId,
+        iteration: beat.iteration,
+        grade,
+        offsetMs,
+        points: rec.points,
+        totalScore: this.board.total,
+        clampedMs
+      });
+      const reaction = this.phases[beat.index].onJudge?.[grade];
+      if (reaction) this.applyReaction(beat, reaction, at);
+      this.consecutiveMiss = grade === "miss" ? this.consecutiveMiss + 1 : 0;
+      if (grade !== "miss") return;
+      const f = this.failure;
+      if (f.abortOnMiss.has(beat.phaseType)) {
+        this.fail({ type: "miss_abort", phaseType: beat.phaseType, phaseId: beat.phaseId, beatIndex: beat.index });
+      } else if (f.maxConsecutiveMiss !== null && this.consecutiveMiss >= f.maxConsecutiveMiss) {
+        this.fail({ type: "consecutive_miss", count: this.consecutiveMiss, beatIndex: beat.index });
+      } else if (f.failOnNoInput && this.judged.every(Boolean) && this.board.snapshot().counts.miss === this.judged.length) {
+        this.fail({ type: "no_input", presses: this.presses });
+      }
+    }
+    /** onJudge 반응: 판정 시각 기준 큐 예약, replaceRemaining 이면 해당 actor 의 남은 기본 큐 취소 */
+    applyReaction(beat, r, at) {
+      if (r.replaceRemaining) {
+        const actors = new Set(r.cues.map((c) => c.actor));
+        this.items = this.items.filter((it) => {
+          const cancel = it.kind === "cue" && it.source === "phase" && it.beat === beat.index && actors.has(it.actor);
+          if (cancel) this.emit({
+            type: "cueCancelled",
+            atMs: at,
+            actor: it.actor,
+            key: it.key,
+            beatIndex: beat.index,
+            scheduledAtMs: it.at
+          });
+          return !cancel;
+        });
+      }
+      for (const c of r.cues)
+        this.schedule({ kind: "cue", at: at + c.atMs, beat: beat.index, actor: c.actor, key: c.key, source: "reaction" });
+    }
+    // ───────────────────────────── outcomes ─────────────────────────────
+    fail(reason) {
+      this.status = "failed";
+      this.items = this.items.filter((it) => it.kind === "cue" && it.source === "reaction");
+      const score = this.board.snapshot();
+      this.result = {
+        outcome: "failed",
+        reason,
+        score,
+        judgements: this.board.judgements,
+        progressionCount: this.timelineCache.progressionCount,
+        failedAtMs: this.now
+      };
+      this.emit({ type: "fail", atMs: this.now, reason, score });
+      this.maybeFinishAftermath();
+    }
+    /** 던지기 페이즈 종료: 최종 점수 비율로 낙법 결정 → 낙법 시퀀스 예약 */
+    startUkemi(at) {
+      const summary = this.board.summarize(this.data.ukemi.thresholds);
+      const res = this.data.ukemi.results[summary.ukemi];
+      this.status = "ukemi";
+      this.result = {
+        outcome: "success",
+        ukemi: summary.ukemi,
+        score: summary,
+        judgements: this.board.judgements,
+        progressionCount: this.timelineCache.progressionCount,
+        decidedAtMs: at
+      };
+      this.emit({ type: "ukemi", atMs: at, grade: summary.ukemi, score: summary, durationMs: res.durationMs });
+      for (const c of res.animations) this.schedule({ kind: "cue", at: at + c.atMs, actor: c.actor, key: c.key, source: "ukemi" });
+      this.schedule({ kind: "ukemiEnd", at: at + res.durationMs });
+    }
+    maybeFinishAftermath() {
+      if (this.status === "failed" && this.items.length === 0) this.finish(this.now);
+    }
+    finish(at) {
+      this.status = "finished";
+      this.items = [];
+      this.queue = [];
+      if (this.result) this.emit({ type: "finish", atMs: at, result: this.result });
+    }
+    resolveFailure(o) {
+      const d = this.data.failure ?? {};
+      const max = o && "maxConsecutiveMiss" in o ? o.maxConsecutiveMiss : d.maxConsecutiveMiss;
+      if (max !== void 0 && max !== null && !(Number.isInteger(max) && max >= 1))
+        throw new EngineArgumentError(`failure.maxConsecutiveMiss 는 1 이상 정수 또는 null (받은 값: ${max})`);
+      return {
+        abortOnMiss: new Set(o?.abortOnMiss ?? d.abortOnMiss ?? []),
+        maxConsecutiveMiss: max ?? null,
+        failOnNoInput: o?.failOnNoInput ?? d.failOnNoInput ?? true
+      };
+    }
+    // ───────────────────────────── events ─────────────────────────────
+    emit(e) {
+      this.outbox.push(e);
+    }
+    /** 리스너는 호출 종료 시점에 일괄 호출 → 리스너 안에서 press() 등을 불러도 재진입 안전 */
+    flush() {
+      const out = this.outbox;
+      this.outbox = [];
+      for (const e of out)
+        for (const fn of this.listeners) {
+          try {
+            fn(e);
+          } catch (err) {
+            this.onListenerError(err, e);
+          }
+        }
+      return out;
+    }
+  };
+
+  // src/input/oneButton.ts
+  var bindOneButton = (target, onPress, opts = {}) => {
+    const codes = new Set(opts.codes ?? ["Space"]);
+    const prevent = opts.preventDefault ?? true;
+    const map = opts.toEngineTime ?? ((t) => t);
+    const onKey = (ev) => {
+      const e = ev;
+      if (!codes.has(e.code)) return;
+      if (prevent) e.preventDefault();
+      if (e.repeat) return;
+      onPress(map(e.timeStamp));
+    };
+    const onPointer = (ev) => {
+      const e = ev;
+      if (e.isPrimary === false || e.button !== 0) return;
+      if (prevent && e.cancelable) e.preventDefault();
+      onPress(map(e.timeStamp));
+    };
+    target.addEventListener("keydown", onKey);
+    if (opts.pointer ?? true) target.addEventListener("pointerdown", onPointer, { passive: !prevent });
+    return () => {
+      target.removeEventListener("keydown", onKey);
+      target.removeEventListener("pointerdown", onPointer);
+    };
+  };
+
+  // src/config/animation.ts
+  var ANIM_FPS = { MIN: 10, MAX: 12, DEFAULT: 12 };
+  var clampAnimFps = (fps) => Number.isFinite(fps) ? Math.min(ANIM_FPS.MAX, Math.max(ANIM_FPS.MIN, Math.round(fps))) : ANIM_FPS.DEFAULT;
+  var SNAP_MS = 1e3 / ANIM_FPS.DEFAULT;
+
+  // src/render/frameTiming.ts
+  var buildDurations = (frameRate, frames, holds = {}) => {
+    const tick = 1e3 / clampAnimFps(frameRate);
+    return Array.from({ length: Math.max(1, Math.floor(frames)) }, (_, i) => tick * Math.max(1, holds[String(i)] ?? 1));
+  };
+  var totalOf = (durations) => durations.reduce((s, d) => s + d, 0);
+  var frameIndexAt = (durations, repeat, elapsedMs) => {
+    const n = durations.length;
+    const total = totalOf(durations);
+    let t = Math.max(0, elapsedMs);
+    if (repeat === -1) t %= total;
+    else if (t >= total * (repeat + 1)) return n - 1;
+    else t %= total;
+    for (let i = 0; i < n; i++) {
+      const d = durations[i];
+      if (t < d) return i;
+      t -= d;
+    }
+    return n - 1;
+  };
+  var isFinishedAt = (durations, repeat, elapsedMs) => repeat !== -1 && elapsedMs >= totalOf(durations) * (repeat + 1);
+
+  // src/render/placeholderArt.ts
+  var CHAR_FRAME = { w: 64, h: 64 };
+  var FX_FRAME = { w: 32, h: 32 };
+  var J = (p) => ({ lean: 0, arm: 40, reach: 10, crouch: 0, lie: 0, dx: 0, step: 4, ...p });
+  var POSES = {
+    stand: [J({}), J({ crouch: 1 })],
+    windup: [J({ lean: -5, arm: 20 }), J({ lean: -8, arm: -110, reach: 13 })],
+    strike: [J({ lean: -5, arm: -110, reach: 13 }), J({ lean: 18, arm: 20, reach: 15, dx: 4, step: 8 })],
+    step_in: [J({ lean: 5, arm: 30 }), J({ lean: 15, arm: -10, reach: 14, dx: 8, step: 9, crouch: 3 })],
+    stagger: [J({}), J({ lean: -15, arm: 60, dx: -4, step: 6 })],
+    hit: [J({ lean: -10, arm: 50 }), J({ lean: -25, arm: 70, dx: -6, crouch: 4 })],
+    lead: [J({ lean: 5, arm: 0, reach: 14, step: 6 }), J({ lean: 10, arm: -20, reach: 15, step: 8, crouch: 4 })],
+    drawn: [J({ lean: 10, arm: 10 }), J({ lean: 25, arm: 30, dx: 4, crouch: 3 })],
+    off_balance: [J({ lean: 25, arm: 30, crouch: 3 }), J({ lean: -20, arm: -40, crouch: 6, dx: -2 })],
+    resist: [J({ lean: 15 }), J({ lean: -5, arm: 20, step: 8 })],
+    recover: [J({ lean: -10, crouch: 4 }), J({ lean: 0, arm: 40 })],
+    lift_prep: [J({ arm: -20, reach: 14 }), J({ lean: -5, arm: -100, reach: 15, step: 7 })],
+    lifted: [J({ lean: -15, arm: -40 }), J({ lean: -30, arm: -70, dx: -2 })],
+    cut: [J({ lean: -5, arm: -100, reach: 15, step: 7 }), J({ lean: 30, arm: 40, reach: 16, dx: 6, step: 10, crouch: 6 })],
+    thrown: [J({ lean: -30, lie: 0.1 }), J({ lean: -20, lie: 0.85, dx: -6 })],
+    weak: [J({ lean: 10, arm: 10 }), J({ lean: 5, arm: 30, crouch: 2 })],
+    whiff: [J({ lean: 20, arm: 20 }), J({ lean: 35, arm: 50, dx: 8, crouch: 6 })],
+    zanshin: [J({ lean: 5, arm: 30, reach: 13, step: 7, crouch: 3 }), J({ lean: 5, arm: 28, reach: 13, step: 7, crouch: 4 })],
+    roll: [J({ lie: 0.6, arm: -60 }), J({ lie: 1, dx: -10, arm: 60 })],
+    sloppy: [J({ lie: 0.7, arm: 80 }), J({ lie: 1, dx: -4, crouch: 2, arm: -80 })],
+    crash: [J({ lie: 0.9, arm: -90 }), J({ lie: 1, dx: -2, arm: 90, reach: 12 })],
+    reach: [J({ arm: 30 }), J({ lean: 15, arm: 0, reach: 16, dx: 6, step: 8 })],
+    hold: [J({ lean: 15, arm: 0, reach: 16, dx: 6, step: 8 }), J({ lean: 18, arm: 5, reach: 16, dx: 6, step: 8, crouch: 2 })],
+    turn: [J({ arm: 20 }), J({ lean: 8, arm: -10, reach: 14, dx: 10, step: 9, crouch: 4 })],
+    raise: [J({ arm: -20, reach: 14 }), J({ lean: 5, arm: -100, reach: 15, step: 8, crouch: 2 })],
+    twisted: [J({ lean: 15, arm: -30 }), J({ lean: -25, arm: -80, dx: -3 })],
+    stuck: [J({ lean: 5, arm: 10 }), J({ lean: -10, arm: 10, crouch: 4 })]
+  };
+  var TORI_PALETTE = {
+    gi: "#f2efe6",
+    giShade: "#c9c3b3",
+    hakama: "#1f2b4d",
+    belt: "#1f2b4d",
+    skin: "#e0b48a",
+    hair: "#2a1d15",
+    outline: "#0b0b10"
+  };
+  var UKE_PALETTE = {
+    gi: "#e6e1d6",
+    giShade: "#b9b2a2",
+    hakama: "#3b1d1d",
+    belt: "#b3282d",
+    skin: "#d9a57a",
+    hair: "#15110f",
+    outline: "#0b0b10"
+  };
+  var lerp = (a, b, t) => a + (b - a) * t;
+  var lerpJoint = (a, b, t) => ({
+    lean: lerp(a.lean, b.lean, t),
+    arm: lerp(a.arm, b.arm, t),
+    reach: lerp(a.reach, b.reach, t),
+    crouch: lerp(a.crouch, b.crouch, t),
+    lie: lerp(a.lie, b.lie, t),
+    dx: lerp(a.dx, b.dx, t),
+    step: lerp(a.step, b.step, t)
+  });
+  var rad = (d) => d * Math.PI / 180;
+  var stroke = (ctx, a, b, w, color, map) => {
+    ctx.fillStyle = color;
+    const pa = map(a);
+    const pb = map(b);
+    const len = Math.max(1, Math.hypot(pb.x - pa.x, pb.y - pa.y));
+    const steps = Math.ceil(len * 2);
+    for (let i = 0; i <= steps; i++) {
+      const x = pa.x + (pb.x - pa.x) * i / steps;
+      const y = pa.y + (pb.y - pa.y) * i / steps;
+      ctx.fillRect(Math.round(x - w / 2), Math.round(y - w / 2), w, w);
+    }
+  };
+  var disc = (ctx, c, r, color, map) => {
+    ctx.fillStyle = color;
+    const p = map(c);
+    for (let dy = -r; dy <= r; dy++) {
+      const half = Math.round(Math.sqrt(r * r - dy * dy));
+      ctx.fillRect(Math.round(p.x) - half, Math.round(p.y) + dy, half * 2 + 1, 1);
+    }
+  };
+  var drawFigure = (ctx, pose, t, pal, ox, oy) => {
+    const pair = POSES[pose] ?? POSES.stand;
+    const j = lerpJoint(pair[0], pair[1], t);
+    const { w, h } = CHAR_FRAME;
+    const hipY = 26 - j.crouch;
+    const hip = { x: j.dx, y: hipY };
+    const L = rad(j.lean);
+    const shoulder = { x: hip.x + Math.sin(L) * 16, y: hip.y + Math.cos(L) * 16 };
+    const head = { x: hip.x + Math.sin(L) * 23, y: hip.y + Math.cos(L) * 23 };
+    const A = rad(j.arm);
+    const hand = { x: shoulder.x + Math.cos(A) * j.reach, y: shoulder.y - Math.sin(A) * j.reach };
+    const elbow = { x: (shoulder.x + hand.x) / 2, y: (shoulder.y + hand.y) / 2 - 1 };
+    const backHand = { x: shoulder.x - 2 + Math.cos(A + 0.5) * j.reach * 0.7, y: shoulder.y - 2 - Math.sin(A + 0.5) * j.reach * 0.7 };
+    const front = { x: j.dx + j.step, y: 0 };
+    const back = { x: j.dx - j.step, y: 0 };
+    const phi = rad(j.lie * 90);
+    const rot = (p) => ({ x: p.x * Math.cos(phi) - p.y * Math.sin(phi), y: p.x * Math.sin(phi) + p.y * Math.cos(phi) });
+    const pts = [hip, shoulder, head, hand, elbow, backHand, front, back].map(rot);
+    const lift = Math.max(0, -Math.min(...pts.map((p) => p.y - 4)));
+    const map = (p) => {
+      const r = rot(p);
+      return { x: ox + w / 2 + r.x, y: oy + h - 2 - (r.y + lift) };
+    };
+    for (const pass of ["outline", "fill"]) {
+      const o = pass === "outline" ? 2 : 0;
+      const c = (col) => pass === "outline" ? pal.outline : col;
+      stroke(ctx, shoulder, backHand, 3 + o, c(pal.giShade), map);
+      stroke(ctx, hip, back, 6 + o, c(pal.hakama), map);
+      stroke(ctx, hip, front, 6 + o, c(pal.hakama), map);
+      stroke(ctx, hip, shoulder, 9 + o, c(pal.gi), map);
+      disc(ctx, head, 4 + (o ? 1 : 0), c(pal.skin), map);
+      stroke(ctx, shoulder, elbow, 4 + o, c(pal.gi), map);
+      stroke(ctx, elbow, hand, 3 + o, c(pal.gi), map);
+    }
+    disc(ctx, { x: head.x - Math.sin(L) * 1 - 1, y: head.y + 2 }, 2, pal.hair, map);
+    stroke(ctx, { x: hip.x - 3, y: hip.y + 1 }, { x: hip.x + 3, y: hip.y + 1 }, 2, pal.belt, map);
+    disc(ctx, hand, 1, pal.skin, map);
+    stroke(ctx, { x: shoulder.x - 1, y: shoulder.y - 3 }, { x: hip.x - 2, y: hip.y + 3 }, 2, pal.giShade, map);
+  };
+  var drawFx = (ctx, pose, t, ox, oy) => {
+    const cx = ox + FX_FRAME.w / 2;
+    const cy = oy + FX_FRAME.h / 2;
+    const px = (x, y, s = 1) => ctx.fillRect(Math.round(x), Math.round(y), s, s);
+    const ring = (r, color, s = 1) => {
+      ctx.fillStyle = color;
+      const n = Math.max(8, Math.round(r * 6));
+      for (let i = 0; i < n; i++) px(cx + Math.cos(i / n * 2 * Math.PI) * r - s / 2, cy + Math.sin(i / n * 2 * Math.PI) * r - s / 2, s);
+    };
+    switch (pose) {
+      case "fx_flash": {
+        const r = Math.round(2 + t * 12);
+        ctx.fillStyle = t < 0.5 ? "#ffffff" : "#9be7ff";
+        for (let d = -r; d <= r; d++) {
+          const span = r - Math.abs(d);
+          ctx.fillRect(cx - Math.round(span * 0.35), cy + d, Math.round(span * 0.7) + 1, 1);
+          ctx.fillRect(cx + d, cy - Math.round(span * 0.35), 1, Math.round(span * 0.7) + 1);
+        }
+        break;
+      }
+      case "fx_soft":
+        ring(3 + t * 8, t < 0.6 ? "#fff4c2" : "#c9b87a");
+        break;
+      case "fx_spark": {
+        ctx.fillStyle = t < 0.5 ? "#ffffff" : "#ffd166";
+        for (let i = 0; i < 8; i++) {
+          const a = i / 8 * 2 * Math.PI + 0.3;
+          for (let r = 2 + t * 6; r < 5 + t * 11; r += 1) px(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+        }
+        break;
+      }
+      case "fx_ring":
+        ring(4 + t * 11, "#4fc3f7", 2);
+        if (t < 0.5) ring(2 + t * 6, "#ffffff");
+        break;
+      case "fx_dust": {
+        ctx.fillStyle = t < 0.5 ? "#9a8f7a" : "#6b6354";
+        for (let i = 0; i < 14; i++) {
+          const a = Math.PI + i / 13 * Math.PI;
+          const r = 3 + t * 12 + i * 7 % 5;
+          px(cx + Math.cos(a) * r, cy + 8 + Math.sin(a) * r * 0.4, 2);
+        }
+        break;
+      }
+      default:
+        ring(6, "#ff00ff");
+    }
+  };
+
+  // src/render/AnimRegistry.ts
+  var MISSING_TEXTURE = "__seq_missing";
+  var AnimRegistry = class {
+    constructor(scene, manifest) {
+      __publicField(this, "scene", scene);
+      __publicField(this, "manifest", manifest);
+      __publicField(this, "map", /* @__PURE__ */ new Map());
+      __publicField(this, "warned", /* @__PURE__ */ new Set());
+      __publicField(this, "warnings", []);
+    }
+    build() {
+      this.ensureMissingTexture();
+      for (const [key, def] of Object.entries(this.manifest.sequences)) this.map.set(key, this.resolve(key, def));
+      return this;
+    }
+    has(key) {
+      return this.map.has(key);
+    }
+    get(key) {
+      const s = this.map.get(key);
+      if (s) return s;
+      this.warn(key, `시퀀스 Key '${key}' 가 animations.json 에 없음 → missing 대체`);
+      const missing = {
+        key,
+        textureKey: MISSING_TEXTURE,
+        frames: [0],
+        frameRate: 10,
+        durations: [100],
+        totalMs: 100,
+        repeat: 0,
+        source: "missing"
+      };
+      this.map.set(key, missing);
+      return missing;
+    }
+    warn(id, msg) {
+      if (this.warned.has(id)) return;
+      this.warned.add(id);
+      this.warnings.push(msg);
+      console.warn(`[AnimRegistry] ${msg}`);
+    }
+    resolve(key, def) {
+      const fps = clampAnimFps(def.frameRate);
+      if (fps !== def.frameRate) this.warn(`${key}:fps`, `${key}: frameRate ${def.frameRate} → ${fps} (10~12fps 고정)`);
+      const n = Math.max(1, Math.floor(def.frames));
+      const durations = buildDurations(fps, n, def.holds);
+      const base = { key, frameRate: fps, durations, totalMs: totalOf(durations), repeat: def.repeat ?? 0 };
+      if (def.atlas) {
+        const tex = this.scene.textures.exists(def.atlas.texture) ? this.scene.textures.get(def.atlas.texture) : null;
+        const start = def.atlas.start ?? 0;
+        const pad = def.atlas.zeroPad ?? 2;
+        const names = Array.from({ length: n }, (_, i) => `${def.atlas.prefix}${String(start + i).padStart(pad, "0")}`);
+        if (tex && names.every((f) => tex.has(f))) return { ...base, textureKey: def.atlas.texture, frames: names, source: "atlas" };
+        this.warn(`${key}:atlas`, `${key}: 아틀라스 '${def.atlas.texture}' 프레임 없음 → 플레이스홀더`);
+      }
+      const textureKey = `ph:${key}`;
+      this.generatePlaceholder(textureKey, key, def.pose ?? "stand", n);
+      return { ...base, textureKey, frames: Array.from({ length: n }, (_, i) => i), source: "placeholder" };
+    }
+    /** 가로 스트립 시트를 캔버스 텍스처로 생성하고 프레임 0..n-1 등록 */
+    generatePlaceholder(textureKey, key, pose, n) {
+      const textures = this.scene.textures;
+      if (textures.exists(textureKey)) return;
+      const isFx = key.startsWith("fx.");
+      const { w, h } = isFx ? FX_FRAME : CHAR_FRAME;
+      const tex = textures.createCanvas(textureKey, w * n, h);
+      if (!tex) throw new Error(`캔버스 텍스처 생성 실패: ${textureKey}`);
+      const ctx = tex.getContext();
+      ctx.imageSmoothingEnabled = false;
+      const pal = key.startsWith("uke.") ? UKE_PALETTE : TORI_PALETTE;
+      for (let i = 0; i < n; i++) {
+        const t = n === 1 ? 1 : i / (n - 1);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(i * w, 0, w, h);
+        ctx.clip();
+        if (isFx) drawFx(ctx, pose, t, i * w, 0);
+        else drawFigure(ctx, pose, t, pal, i * w, 0);
+        ctx.restore();
+        tex.add(i, 0, i * w, 0, w, h);
+      }
+      tex.refresh();
+    }
+    ensureMissingTexture() {
+      if (this.scene.textures.exists(MISSING_TEXTURE)) return;
+      const { w, h } = CHAR_FRAME;
+      const tex = this.scene.textures.createCanvas(MISSING_TEXTURE, w, h);
+      if (!tex) return;
+      const ctx = tex.getContext();
+      for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) {
+        ctx.fillStyle = (x + y) % 8 === 0 ? "#ff00ff" : "#200020";
+        ctx.fillRect(x, y, 4, 4);
+      }
+      tex.add(0, 0, 0, 0, w, h);
+      tex.refresh();
+    }
+  };
+
+  // src/render/AnimationController.ts
+  var AnimationController = class {
+    constructor(sprite, registry) {
+      __publicField(this, "sprite", sprite);
+      __publicField(this, "registry", registry);
+      __publicField(this, "seq", null);
+      __publicField(this, "startAt", 0);
+      __publicField(this, "shown", -1);
+    }
+    /** @param atMs 이 시퀀스가 시작돼야 하는 가상시간 (이미 지난 시각이면 그만큼 진행된 프레임부터) */
+    play(key, atMs) {
+      const s = this.registry.get(key);
+      this.seq = s;
+      this.startAt = atMs;
+      this.shown = -1;
+      this.sprite.setTexture(s.textureKey, s.frames[0]);
+    }
+    update(nowMs) {
+      const s = this.seq;
+      if (!s) return;
+      const i = frameIndexAt(s.durations, s.repeat, nowMs - this.startAt);
+      if (i === this.shown) return;
+      this.shown = i;
+      this.sprite.setFrame(s.frames[i]);
+    }
+    finished(nowMs) {
+      return !this.seq || isFinishedAt(this.seq.durations, this.seq.repeat, nowMs - this.startAt);
+    }
+    get key() {
+      return this.seq?.key ?? null;
+    }
+    get frame() {
+      return this.shown;
+    }
+  };
+
+  // src/render/clock.ts
+  var KEEP = 12;
+  var GameClock = class {
+    constructor(realNow) {
+      __publicField(this, "bps");
+      __publicField(this, "rate", 1);
+      __publicField(this, "paused", false);
+      __publicField(this, "frozenUntil", -Infinity);
+      this.bps = [{ real: realNow, virt: 0, rate: 1 }];
+    }
+    toVirtual(real) {
+      let bp = this.bps[0];
+      for (const b of this.bps) {
+        if (b.real <= real) bp = b;
+        else break;
+      }
+      return bp.virt + (real - bp.real) * bp.rate;
+    }
+    /** 사용자 배속 (히트스톱·일시정지와 무관) */
+    get speed() {
+      return this.rate;
+    }
+    isFrozen(real) {
+      return this.paused || real < this.frozenUntil;
+    }
+    setRate(rate, real) {
+      if (!(rate > 0) || !Number.isFinite(rate)) throw new RangeError(`rate 는 양수여야 함 (${rate})`);
+      this.rate = rate;
+      this.rebuild(real);
+    }
+    /** 히트스톱: real 부터 ms(실시간) 동안 정지. 겹치면 더 늦게 끝나는 쪽으로 연장 */
+    freeze(real, ms) {
+      if (!(ms > 0)) return;
+      this.frozenUntil = Math.max(this.frozenUntil, real + ms);
+      this.rebuild(real);
+    }
+    pause(real) {
+      if (this.paused) return;
+      this.paused = true;
+      this.rebuild(real);
+    }
+    resume(real) {
+      if (!this.paused) return;
+      this.paused = false;
+      this.rebuild(real);
+    }
+    /** real 시점부터 미래 구간을 다시 만든다 (과거 구간은 유지 → 늦게 처리되는 입력도 정확히 변환) */
+    rebuild(real) {
+      const virt = this.toVirtual(real);
+      const past = this.bps.filter((b) => b.real <= real).slice(-KEEP);
+      const effective = this.paused || real < this.frozenUntil ? 0 : this.rate;
+      past.push({ real, virt, rate: effective });
+      if (!this.paused && this.frozenUntil > real) past.push({ real: this.frozenUntil, virt, rate: this.rate });
+      this.bps = past;
+    }
+  };
+
+  // src/render/FxLayer.ts
+  var FxLayer = class {
+    constructor(scene, registry, depth = 30) {
+      __publicField(this, "scene", scene);
+      __publicField(this, "registry", registry);
+      __publicField(this, "depth", depth);
+      __publicField(this, "items", []);
+    }
+    spawn(key, x, y, atMs) {
+      const sprite = this.scene.add.sprite(Math.round(x), Math.round(y), "__DEFAULT").setOrigin(0.5).setDepth(this.depth);
+      const ctrl = new AnimationController(sprite, this.registry);
+      ctrl.play(key, atMs);
+      this.items.push({ sprite, ctrl });
+    }
+    update(nowMs) {
+      this.items = this.items.filter(({ sprite, ctrl }) => {
+        ctrl.update(nowMs);
+        if (!ctrl.finished(nowMs)) return true;
+        sprite.destroy();
+        return false;
+      });
+    }
+    clear() {
+      this.items.forEach((i) => i.sprite.destroy());
+      this.items = [];
+    }
+  };
+
+  // src/render/Spacing.ts
+  var DEFAULT_START_PX = 80;
+  var DEFAULT_MOVE_MS = 120;
+  var MIN_DISTANCE_PX = 8;
+  var sineInOut = (k) => -(Math.cos(Math.PI * k) - 1) / 2;
+  var cubicOut = (k) => 1 - (1 - k) ** 3;
+  var Spacing = class {
+    constructor(tech, motion, centerX) {
+      __publicField(this, "tech", tech);
+      __publicField(this, "motion", motion);
+      __publicField(this, "centerX", centerX);
+      __publicField(this, "move", null);
+      __publicField(this, "baseT", 0);
+      __publicField(this, "baseU", 0);
+      this.reset();
+    }
+    get startPx() {
+      return this.tech.spacing?.startPx ?? DEFAULT_START_PX;
+    }
+    reset() {
+      const d = this.startPx;
+      this.baseT = this.centerX - d / 2;
+      this.baseU = this.centerX + d / 2;
+      this.move = null;
+    }
+    /** 판정 이벤트 → 해당 페이즈 spacing 적용 */
+    onJudge(move, grade, atMs) {
+      if (!move) return;
+      if (grade === "miss" && !this.motion.missStillMoves) return;
+      const slack = this.tech.spacing?.slackPx;
+      const extra = grade === "good" ? slack?.good ?? 0 : grade === "bad" || grade === "miss" ? slack?.bad ?? 0 : 0;
+      this.moveTo(move, atMs, extra);
+    }
+    /** 낙법 시작 → 우케가 날아가는 거리 */
+    onUkemi(move, atMs) {
+      if (move) this.moveTo(move, atMs, 0);
+    }
+    positions(nowMs) {
+      const p = this.sample(nowMs, true);
+      const toriX = Math.round(p.t);
+      const ukeX = Math.round(p.u);
+      return { toriX, ukeX, distance: ukeX - toriX };
+    }
+    /** 정확한(격자 미적용) 거리 */
+    distanceAt(nowMs) {
+      const p = this.sample(nowMs, false);
+      return p.u - p.t;
+    }
+    sample(now, quantize) {
+      const m = this.move;
+      if (!m) return { t: this.baseT, u: this.baseU };
+      let k = m.dur <= 0 ? 1 : Math.min(1, Math.max(0, (now - m.start) / m.dur));
+      let e;
+      if (this.motion.interpolation === "stepped") {
+        if (quantize && k > 0 && k < 1) {
+          const steps = Math.max(2, Math.round(m.dur / this.motion.stepMs));
+          k = Math.min(1, Math.ceil(k * steps) / steps);
+        }
+        e = cubicOut(k);
+      } else {
+        e = sineInOut(k);
+      }
+      return { t: m.fromT + (m.toT - m.fromT) * e, u: m.fromU + (m.toU - m.fromU) * e };
+    }
+    moveTo(move, at, slack) {
+      const cur = this.sample(at, false);
+      const d0 = cur.u - cur.t;
+      let d1 = move.targetPx !== void 0 ? move.targetPx : d0 + (move.deltaPx ?? 0);
+      if (d1 < d0) d1 = Math.min(d0, d1 + slack);
+      d1 = Math.max(MIN_DISTANCE_PX, d1);
+      const delta = d1 - d0;
+      const anchor = move.anchor ?? "tori";
+      const toT = anchor === "tori" ? cur.t - delta : anchor === "center" ? cur.t - delta / 2 : cur.t;
+      const toU = anchor === "uke" ? cur.u + delta : anchor === "center" ? cur.u + delta / 2 : cur.u;
+      const dur = (move.moveMs ?? this.tech.spacing?.moveMs ?? DEFAULT_MOVE_MS) * this.motion.moveScale;
+      this.baseT = cur.t;
+      this.baseU = cur.u;
+      this.move = { start: at, dur, fromT: cur.t, fromU: cur.u, toT, toU };
+    }
+  };
+
+  // src/game/modes.ts
+  var MODES = {
+    /** 수련: 역경직·흔들림 없이 물 흐르듯. 실패 없이 기술을 순서대로 이어서 반복 */
+    flow: {
+      id: "flow",
+      label: "수련",
+      tagline: "FLOW — 역경직 없이 물 흐르듯 이어지는 기술",
+      failure: { abortOnMiss: [], maxConsecutiveMiss: null, failOnNoInput: false },
+      hitstop: null,
+      shake: null,
+      particles: "none",
+      motion: { interpolation: "smooth", stepMs: SNAP_MS, moveScale: 1.8, missStillMoves: true },
+      showTimingCue: true,
+      selection: "cycle",
+      progression: "default",
+      autoNextMs: 500,
+      lives: null,
+      speeds: [1]
+    },
+    /** 게임: SF3 블로킹 — Perfect 순간 화면 정지 + 셰이크 + 파티클. 실패 규칙·목숨 적용 */
+    arcade: {
+      id: "arcade",
+      label: "게임",
+      tagline: "ARCADE — Perfect 에 히트스톱 · 셰이크 · 스파크",
+      failure: null,
+      hitstop: { perfectMs: 110, throwPerfectMs: 150 },
+      shake: { perfect: 6e-3, throwPerfect: 0.012 },
+      particles: "burst",
+      motion: { interpolation: "stepped", stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
+      showTimingCue: false,
+      selection: "random",
+      progression: "random",
+      autoNextMs: 900,
+      lives: 3,
+      speeds: [1]
+    },
+    /** 연습: 선택한 기술만 반복. 타이밍 링 + 배속 조절 */
+    practice: {
+      id: "practice",
+      label: "연습",
+      tagline: "PRACTICE — 한 기술 반복 · ←→ 기술 · ↑↓ 진행 횟수 · T 배속",
+      failure: null,
+      hitstop: null,
+      shake: null,
+      particles: "light",
+      motion: { interpolation: "stepped", stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
+      showTimingCue: true,
+      selection: "fixed",
+      progression: "selected",
+      autoNextMs: 700,
+      lives: null,
+      speeds: [1, 0.5, 0.25]
+    }
+  };
+
+  // src/game/GameScene.ts
+  var RAW_TECHNIQUES = [shomenuchi_iriminage_default, katatedori_shihonage_default];
+  var MANIFEST = animations_default;
+  var GRADE_TEXT = { perfect: "PERFECT", good: "GOOD", bad: "BAD", miss: "MISS" };
+  var GRADE_COLOR = { perfect: 8255999, good: 10216804, bad: 16757575, miss: 16734815 };
+  var UKEMI_COLOR = { perfect: 8255999, good: 16765286, bad: 16734815 };
+  var PHASE_INDEX = { intro: 0, progression: 1, throw: 2 };
+  var FAIL_TEXT = {
+    miss_abort: "타이밍을 놓쳤다",
+    consecutive_miss: "흐름이 끊겼다",
+    no_input: "입력 없음",
+    aborted: "중단"
+  };
+  var CHEST_Y = FLOOR_Y - 38;
+  var hex = (c) => `#${c.toString(16).padStart(6, "0")}`;
+  var UI_STRINGS = [
+    "수련",
+    "게임",
+    "연습",
+    "Space / 터치",
+    "로 시작",
+    "다음 기술",
+    "목숨",
+    "점수",
+    "콤보",
+    "진행",
+    "배속",
+    "기술",
+    "타이밍을 놓쳤다",
+    "흐름이 끊겼다",
+    "입력 없음",
+    "중단",
+    "게임 오버",
+    "다시 시작",
+    "낙법",
+    "라운드",
+    "1 수련 · 2 게임 · 3 연습",
+    "←→ 기술 · ↑↓ 진행 횟수 · T 배속",
+    "데이터 오류",
+    "·",
+    "—",
+    "×",
+    "♥",
+    "♡",
+    "─",
+    ...Object.values(MODES).flatMap((m) => [m.label, m.tagline])
+  ];
+  var GameScene = class extends phaser_global_default.Scene {
+    constructor() {
+      super("game");
+      __publicField(this, "clock");
+      __publicField(this, "seqs");
+      __publicField(this, "techniques", []);
+      __publicField(this, "dataErrors", []);
+      __publicField(this, "mode", MODES.flow);
+      __publicField(this, "state", "title");
+      __publicField(this, "engine", null);
+      __publicField(this, "tech");
+      __publicField(this, "techIndex", 0);
+      __publicField(this, "practiceN", null);
+      __publicField(this, "speedIdx", 0);
+      /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
+      __publicField(this, "roundStart", 0);
+      __publicField(this, "nextAt", null);
+      __publicField(this, "run", { score: 0, rounds: 0, lives: 0, combo: 0, maxCombo: 0 });
+      __publicField(this, "lastResult", null);
+      __publicField(this, "spacing");
+      __publicField(this, "tori");
+      __publicField(this, "uke");
+      __publicField(this, "toriAnim");
+      __publicField(this, "ukeAnim");
+      __publicField(this, "fx");
+      __publicField(this, "sparks");
+      __publicField(this, "cueG");
+      __publicField(this, "hudLeft");
+      __publicField(this, "hudRight");
+      __publicField(this, "help");
+      __publicField(this, "judgeText");
+      __publicField(this, "subText");
+      __publicField(this, "overlay");
+      __publicField(this, "overlayBg");
+      __publicField(this, "unbindInput", null);
+    }
+    // ───────────────────────────── setup ─────────────────────────────
+    create() {
+      this.clock = new GameClock(this.game.loop.now);
+      this.loadTechniques();
+      this.seqs = new AnimRegistry(this, MANIFEST).build();
+      this.makeParticleTexture();
+      this.drawDojo();
+      this.tori = this.add.sprite(0, FLOOR_Y, "__DEFAULT").setOrigin(0.5, 1).setDepth(10);
+      this.uke = this.add.sprite(0, FLOOR_Y, "__DEFAULT").setOrigin(0.5, 1).setDepth(11).setFlipX(true);
+      this.toriAnim = new AnimationController(this.tori, this.seqs);
+      this.ukeAnim = new AnimationController(this.uke, this.seqs);
+      this.fx = new FxLayer(this, this.seqs, 30);
+      this.sparks = this.add.particles(0, 0, "px", {
+        speed: { min: 70, max: 190 },
+        angle: { min: 0, max: 360 },
+        lifespan: { min: 160, max: 380 },
+        gravityY: 320,
+        scale: { start: 2, end: 0 },
+        tint: [16777215, 10217471, 5227511],
+        emitting: false
+      }).setDepth(40);
+      this.cueG = this.add.graphics().setDepth(35);
+      const font = (size, color = "#e6e6e6") => ({ fontFamily: FONT_FAMILY, fontSize: `${size}px`, color, stroke: "#000000", strokeThickness: 3 });
+      this.hudLeft = this.add.text(8, 6, "", font(10)).setDepth(50);
+      this.hudRight = this.add.text(GAME_WIDTH - 8, 6, "", { ...font(10), align: "right" }).setOrigin(1, 0).setDepth(50);
+      this.help = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "", font(9, "#9a9aa6")).setOrigin(0.5).setDepth(50);
+      this.judgeText = this.add.text(GAME_WIDTH / 2, 92, "", { ...font(22), fontStyle: "bold" }).setOrigin(0.5).setDepth(60).setAlpha(0);
+      this.subText = this.add.text(GAME_WIDTH / 2, 114, "", font(10)).setOrigin(0.5).setDepth(60).setAlpha(0);
+      this.overlayBg = this.add.graphics().setDepth(70);
+      this.overlay = this.add.text(GAME_WIDTH / 2, 150, "", { ...font(12), align: "center", lineSpacing: 6 }).setOrigin(0.5).setDepth(71);
+      this.unbindInput = bindOneButton(window, (t) => this.onPress(t));
+      this.events.once(phaser_global_default.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
+      const kb = this.input.keyboard;
+      kb?.on("keydown-ONE", () => this.setMode("flow"));
+      kb?.on("keydown-TWO", () => this.setMode("arcade"));
+      kb?.on("keydown-THREE", () => this.setMode("practice"));
+      kb?.on("keydown-LEFT", () => this.practiceSelect(-1, 0));
+      kb?.on("keydown-RIGHT", () => this.practiceSelect(1, 0));
+      kb?.on("keydown-UP", () => this.practiceSelect(0, 1));
+      kb?.on("keydown-DOWN", () => this.practiceSelect(0, -1));
+      kb?.on("keydown-T", () => this.cycleSpeed());
+      this.game.events.on(phaser_global_default.Core.Events.HIDDEN, () => this.clock.pause(performance.now()));
+      this.game.events.on(phaser_global_default.Core.Events.VISIBLE, () => this.clock.resume(performance.now()));
+      window.__aikido = this;
+      if (!this.techniques.length) {
+        this.showOverlay(["데이터 오류", ...this.dataErrors.slice(0, 6)], 16734815);
+        return;
+      }
+      this.tech = this.techniques[0];
+      this.setMode("flow");
+    }
+    loadTechniques() {
+      for (const raw of RAW_TECHNIQUES) {
+        const issues = validateTechnique(raw);
+        if (issues.length) {
+          const id = raw?.id ?? "(unknown)";
+          this.dataErrors.push(`${id}: ${issues[0]}`);
+          console.error(`[GameScene] 기술 데이터 제외 ${id}`, issues);
+        } else {
+          this.techniques.push(raw);
+        }
+      }
+    }
+    makeParticleTexture() {
+      if (this.textures.exists("px")) return;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(16777215).fillRect(0, 0, 2, 2);
+      g.generateTexture("px", 2, 2);
+      g.destroy();
+    }
+    /** 도장 배경 (픽셀 도트) */
+    drawDojo() {
+      const g = this.add.graphics().setDepth(0);
+      g.fillStyle(1446940).fillRect(0, 0, GAME_WIDTH, FLOOR_Y);
+      g.fillStyle(2235944).fillRect(0, 40, GAME_WIDTH, 6);
+      for (let x = 16; x < GAME_WIDTH; x += 96) g.fillStyle(2827568).fillRect(x, 46, 8, FLOOR_Y - 46);
+      g.fillStyle(3813154).fillRect(GAME_WIDTH / 2 - 60, 70, 120, 44);
+      g.fillStyle(4865067).fillRect(GAME_WIDTH / 2 - 56, 74, 112, 36);
+      g.fillStyle(7034166).fillRect(GAME_WIDTH / 2 - 2, 80, 4, 24);
+      g.fillStyle(4938284).fillRect(0, FLOOR_Y, GAME_WIDTH, GAME_HEIGHT - FLOOR_Y);
+      g.fillStyle(6122807);
+      for (let x = 0; x < GAME_WIDTH; x += 64) g.fillRect(x, FLOOR_Y, 1, GAME_HEIGHT - FLOOR_Y);
+      g.fillStyle(3950627).fillRect(0, FLOOR_Y + 30, GAME_WIDTH, 1);
+      g.fillStyle(1777680).fillRect(0, FLOOR_Y, GAME_WIDTH, 1);
+    }
+    // ───────────────────────────── time ─────────────────────────────
+    realNow() {
+      return this.game.loop.now;
+    }
+    local() {
+      return this.clock.toVirtual(this.realNow()) - this.roundStart;
+    }
+    // ───────────────────────────── flow control ─────────────────────────────
+    setMode(id) {
+      if (!this.techniques.length) return;
+      this.mode = MODES[id];
+      this.engine = null;
+      this.nextAt = null;
+      this.speedIdx = 0;
+      this.clock.setRate(1, this.realNow());
+      this.tweens.timeScale = 1;
+      this.state = "title";
+      this.techIndex = Math.min(this.techIndex, this.techniques.length - 1);
+      this.tech = this.techniques[this.techIndex];
+      this.resetStage();
+      const n = this.pickN(this.tech);
+      this.showOverlay([
+        `${this.mode.label}`,
+        this.mode.tagline,
+        "",
+        this.mode.selection === "fixed" ? `${this.tech.name}  (진행 ×${n})` : this.techniques.map((t) => t.name).join(" · "),
+        "",
+        "Space / 터치 로 시작"
+      ]);
+    }
+    resetStage() {
+      this.roundStart = this.clock.toVirtual(this.realNow());
+      this.spacing = new Spacing(this.tech, this.mode.motion, STAGE_CENTER_X);
+      this.fx.clear();
+      this.cueG.clear();
+      this.toriAnim.play("tori.kamae", 0);
+      this.ukeAnim.play("uke.kamae", 0);
+    }
+    onPress(realT) {
+      switch (this.state) {
+        case "title":
+        case "gameover":
+          this.startRun();
+          break;
+        case "playing":
+          this.engine?.press(this.clock.toVirtual(realT));
+          break;
+        case "between":
+          break;
+      }
+    }
+    startRun() {
+      this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
+      this.hideOverlay();
+      this.startRound(false);
+    }
+    pickTechnique(advance) {
+      const n = this.techniques.length;
+      if (this.mode.selection === "random") this.techIndex = phaser_global_default.Math.Between(0, n - 1);
+      else if (this.mode.selection === "cycle" && advance) this.techIndex = (this.techIndex + 1) % n;
+      return this.techniques[this.techIndex];
+    }
+    pickN(t) {
+      const { min, max, default: d } = t.phases[1].repeat;
+      if (this.mode.progression === "random") return phaser_global_default.Math.Between(min, max);
+      if (this.mode.progression === "selected") return phaser_global_default.Math.Clamp(this.practiceN ?? d, min, max);
+      return d;
+    }
+    startRound(advance) {
+      this.tech = this.pickTechnique(advance);
+      const n = this.pickN(this.tech);
+      this.engine = new TimingEngine(this.tech, {
+        progressionCount: n,
+        ...this.mode.failure ? { failure: this.mode.failure } : {},
+        onListenerError: (e) => console.error(e)
+      });
+      this.resetStage();
+      this.nextAt = null;
+      this.state = "playing";
+      this.cameras.main.fadeIn(160, 0, 0, 0);
+      this.handle(this.engine.start(this.roundStart));
+    }
+    practiceSelect(dTech, dN) {
+      if (this.mode.id !== "practice" || this.state === "playing") return;
+      const len = this.techniques.length;
+      if (dTech) {
+        this.techIndex = (this.techIndex + dTech + len) % len;
+        this.practiceN = null;
+      }
+      const t = this.techniques[this.techIndex];
+      if (dN) {
+        const { min, max, default: d } = t.phases[1].repeat;
+        this.practiceN = phaser_global_default.Math.Clamp((this.practiceN ?? d) + dN, min, max);
+      }
+      this.setMode("practice");
+    }
+    cycleSpeed() {
+      const speeds = this.mode.speeds;
+      if (speeds.length < 2) return;
+      this.speedIdx = (this.speedIdx + 1) % speeds.length;
+      const s = speeds[this.speedIdx];
+      this.clock.setRate(s, this.realNow());
+      this.tweens.timeScale = s;
+    }
+    // ───────────────────────────── engine events ─────────────────────────────
+    handle(events) {
+      for (const e of events) {
+        switch (e.type) {
+          case "cue":
+            if (e.actor === "tori") this.toriAnim.play(e.key, e.atMs);
+            else if (e.actor === "uke") this.ukeAnim.play(e.key, e.atMs);
+            else {
+              const c = this.contactAt(e.atMs);
+              this.fx.spawn(e.key, c.x, c.y, e.atMs);
+            }
+            break;
+          case "judge":
+            this.onJudge(e);
+            break;
+          case "ukemi":
+            this.spacing.onUkemi(this.tech.ukemi.results[e.grade].spacing, e.atMs);
+            this.flashText(`낙법 ${e.grade.toUpperCase()}`, UKEMI_COLOR[e.grade], `${Math.round(e.score.ratio * 100)}%  ·  ${e.score.raw} / ${e.score.max}`);
+            break;
+          case "fail":
+            this.flashText("FAIL", GRADE_COLOR.miss, FAIL_TEXT[e.reason.type]);
+            break;
+          case "finish":
+            this.onFinish(e.result);
+            break;
+          default:
+            break;
+        }
+      }
+    }
+    phaseOf(beatIndex) {
+      const beat = this.engine?.timeline.beats[beatIndex];
+      return this.tech.phases[PHASE_INDEX[beat?.phaseType ?? "intro"]];
+    }
+    contactAt(atMs) {
+      const p = this.spacing.positions(atMs);
+      return { x: (p.toriX + p.ukeX) / 2, y: CHEST_Y };
+    }
+    onJudge(e) {
+      this.spacing.onJudge(this.phaseOf(e.beatIndex).spacing, e.grade, e.atMs);
+      const r = this.run;
+      r.combo = e.grade === "perfect" ? r.combo + 1 : 0;
+      r.maxCombo = Math.max(r.maxCombo, r.combo);
+      const sub = e.offsetMs === null ? "" : `${e.offsetMs >= 0 ? "+" : ""}${Math.round(e.offsetMs)}ms`;
+      this.flashText(GRADE_TEXT[e.grade], GRADE_COLOR[e.grade], sub);
+      const m = this.mode;
+      const c = this.contactAt(e.atMs);
+      if (e.grade === "perfect") {
+        const isThrow = e.phaseType === "throw";
+        if (m.hitstop) {
+          const ms = isThrow ? m.hitstop.throwPerfectMs : m.hitstop.perfectMs;
+          this.clock.freeze(this.realNow(), ms);
+          this.tintFlash(Math.min(ms, 70));
+          if (m.shake) this.cameras.main.shake(ms, isThrow ? m.shake.throwPerfect : m.shake.perfect);
+        }
+        if (m.particles === "burst") this.sparks.explode(isThrow ? 30 : 18, c.x, c.y);
+        else if (m.particles === "light") this.sparks.explode(6, c.x, c.y);
+      } else if (e.grade === "good" && m.particles !== "none") {
+        this.sparks.explode(3, c.x, c.y);
+      }
+    }
+    onFinish(result) {
+      this.lastResult = result;
+      const r = this.run;
+      r.rounds++;
+      if (result.outcome === "success") r.score += result.score.raw;
+      if (result.outcome === "failed" && this.mode.lives !== null) r.lives--;
+      if (this.mode.lives !== null && r.lives <= 0) {
+        this.state = "gameover";
+        this.showOverlay([
+          "게임 오버",
+          "",
+          `점수 ${r.score}   ·   ${r.rounds} 라운드   ·   최대 콤보 ${r.maxCombo}`,
+          "",
+          "Space / 터치 로 다시 시작"
+        ], 16734815);
+        return;
+      }
+      this.state = "between";
+      this.nextAt = this.local() + this.mode.autoNextMs;
+    }
+    // ───────────────────────────── feedback ─────────────────────────────
+    flashText(text, color, sub = "") {
+      this.tweens.killTweensOf([this.judgeText, this.subText]);
+      this.judgeText.setText(text).setColor(hex(color)).setAlpha(1).setScale(1.4);
+      this.subText.setText(sub).setAlpha(sub ? 1 : 0);
+      this.tweens.add({ targets: this.judgeText, scale: 1, duration: 110, ease: "Back.easeOut" });
+      this.tweens.add({ targets: [this.judgeText, this.subText], alpha: 0, delay: 700, duration: 250 });
+    }
+    /** Perfect 순간 두 캐릭터를 흰색으로 번쩍 (SF3 블로킹 플래시) */
+    tintFlash(ms) {
+      this.tori.setTintFill(16777215);
+      this.uke.setTintFill(16777215);
+      this.time.delayedCall(ms, () => {
+        this.tori.clearTint();
+        this.uke.clearTint();
+      });
+    }
+    showOverlay(lines, color = 15132390) {
+      this.tweens.killTweensOf([this.judgeText, this.subText]);
+      this.judgeText.setAlpha(0);
+      this.subText.setAlpha(0);
+      this.overlay.setText(lines.join("\n")).setColor(hex(color)).setVisible(true);
+      const b = this.overlay.getBounds();
+      this.overlayBg.clear().fillStyle(0, 0.72).fillRect(Math.round(b.x - 14), Math.round(b.y - 10), Math.round(b.width + 28), Math.round(b.height + 20));
+      this.overlayBg.lineStyle(1, 4868698).strokeRect(Math.round(b.x - 14) + 0.5, Math.round(b.y - 10) + 0.5, Math.round(b.width + 27), Math.round(b.height + 19));
+      this.overlayBg.setVisible(true);
+    }
+    hideOverlay() {
+      this.overlay.setVisible(false);
+      this.overlayBg.setVisible(false);
+    }
+    // ───────────────────────────── frame ─────────────────────────────
+    update() {
+      if (!this.techniques.length) return;
+      if (this.engine) this.handle(this.engine.update(this.clock.toVirtual(this.realNow())));
+      const now = this.local();
+      if (this.state === "between" && this.nextAt !== null && now >= this.nextAt) this.startRound(true);
+      const nowAfter = this.local();
+      this.toriAnim.update(nowAfter);
+      this.ukeAnim.update(nowAfter);
+      this.fx.update(nowAfter);
+      const pos = this.spacing.positions(nowAfter);
+      this.tori.setX(pos.toriX);
+      this.uke.setX(pos.ukeX);
+      this.drawTimingCue(nowAfter, pos);
+      this.drawHud(pos.distance);
+    }
+    /** 수련·연습: 다음 판정의 퍼펙트 시각을 향해 줄어드는 링 */
+    drawTimingCue(now, pos) {
+      const g = this.cueG;
+      g.clear();
+      if (!this.mode.showTimingCue || this.state !== "playing" || !this.engine) return;
+      const next = this.engine.getState().nextJudgeBeat;
+      if (next === null) return;
+      const beat = this.engine.timeline.beats[next];
+      if (!beat) return;
+      const dt = beat.perfectAtMs - now;
+      const LEAD = 700;
+      if (dt > LEAD || dt < -80) return;
+      const x = Math.round((pos.toriX + pos.ukeX) / 2);
+      const k = Math.max(0, dt) / LEAD;
+      const r = Math.round(6 + k * 34);
+      g.lineStyle(1, 16777215, 0.35).strokeCircle(x, CHEST_Y, 6);
+      g.lineStyle(2, dt <= 50 ? 8255999 : 16777215, 1 - k * 0.6).strokeCircle(x, CHEST_Y, r);
+    }
+    drawHud(distance) {
+      const r = this.run;
+      const m = this.mode;
+      const parts = [`[${m.label}]`];
+      if (m.lives !== null) parts.push(`목숨 ${"♥".repeat(Math.max(0, r.lives))}${"♡".repeat(Math.max(0, (m.lives ?? 0) - r.lives))}`);
+      const live = this.engine?.getState();
+      const playing = !!live && this.state === "playing";
+      if (m.id === "arcade") parts.push(`점수 ${r.score + (playing ? live.score.raw : 0)}`, `콤보 ${r.combo}`);
+      if (m.speeds.length > 1) parts.push(`배속 ×${m.speeds[this.speedIdx]}`);
+      if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
+      this.hudLeft.setText(parts.join("   "));
+      const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
+      this.hudRight.setText(`${this.tech.name}
+진행 ×${n}   마아이 ${distance}px`);
+      this.help.setText(m.id === "practice" ? "1 수련 · 2 게임 · 3 연습   |   ←→ 기술 · ↑↓ 진행 횟수 · T 배속" : "1 수련 · 2 게임 · 3 연습   |   Space / 터치");
+    }
+    /** 자동화 테스트·콘솔 디버그용 스냅샷 */
+    debugSnapshot() {
+      const pos = this.spacing?.positions(this.local());
+      return {
+        mode: this.mode.id,
+        state: this.state,
+        technique: this.tech?.id,
+        speed: this.clock.speed,
+        frozen: this.clock.isFrozen(this.realNow()),
+        local: this.local(),
+        engine: this.engine?.getState() ?? null,
+        result: this.lastResult,
+        run: { ...this.run },
+        positions: pos,
+        anims: {
+          tori: { key: this.toriAnim.key, frame: this.toriAnim.frame },
+          uke: { key: this.ukeAnim.key, frame: this.ukeAnim.frame }
+        },
+        warnings: [...this.seqs.warnings],
+        dataErrors: [...this.dataErrors]
+      };
+    }
+  };
+
+  // src/main.ts
+  var boot = async () => {
+    await loadFonts(glyphsIn(JSON.stringify(RAW_TECHNIQUES), ...UI_STRINGS));
+    const game = new phaser_global_default.Game(createGameConfig([GameScene], "game"));
+    installIntegerZoom(game);
+  };
+  void boot();
+})();
+
+</script>
+</body>
+</html>

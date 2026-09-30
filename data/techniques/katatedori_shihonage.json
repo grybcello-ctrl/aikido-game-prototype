@@ -1,0 +1,121 @@
+{
+  "$schema": "../../schema/technique.schema.json",
+  "schemaVersion": 1,
+  "id": "katatedori_shihonage",
+  "name": "편손잡기 사방던지기",
+  "description": "손목을 잡으러 오는 순간 텐칸으로 맞이하고, 팔을 N회 들어 올려 기울인 뒤 사방으로 베어 던진다.",
+  "totalDurationMs": 3100,
+  "input": { "lockoutMs": 150 },
+  "spacing": { "startPx": 88, "moveMs": 120, "slackPx": { "good": 6, "bad": 14 } },
+
+  "phases": [
+    {
+      "type": "intro",
+      "id": "tenkan_catch",
+      "label": "도입 — 잡으러 오는 손을 텐칸으로 맞이",
+      "durationMs": 900,
+      "perfectMs": 550,
+      "window": { "perfect": 50, "good": 100, "bad": { "early": 160, "late": 150 } },
+      "weight": 1,
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.kamae" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.grab_reach" },
+        { "atMs": 450, "actor": "uke",  "key": "uke.grab_hold" },
+        { "atMs": 550, "actor": "tori", "key": "tori.tenkan_turn" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.musubi_flash" }] },
+        "good":    { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.contact_soft" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.irimi_stagger" }] },
+        "miss":    { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.grab_stuck" }] }
+      },
+      "spacing": { "targetPx": 40, "anchor": "center" }
+    },
+    {
+      "type": "progression",
+      "id": "raise_lead",
+      "label": "진행 — 팔을 들어 올려 기울이기",
+      "durationMs": 700,
+      "perfectMs": 450,
+      "window": { "perfect": 45, "good": 90, "bad": 140 },
+      "weight": 1,
+      "repeat": { "min": 1, "max": 4, "default": 2 },
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.raise_arm" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.twisted" },
+        { "atMs": 450, "actor": "uke",  "key": "uke.off_balance" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.kuzushi_ring" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "uke", "key": "uke.resist" }] },
+        "miss":    { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "uke", "key": "uke.recover" }] }
+      },
+      "spacing": { "deltaPx": -4, "anchor": "tori" }
+    },
+    {
+      "type": "throw",
+      "id": "shiho_cut",
+      "label": "던지기 — 사방으로 베어 내리기",
+      "durationMs": 800,
+      "perfectMs": 450,
+      "window": { "perfect": 50, "good": 100, "bad": { "early": 180, "late": 160 } },
+      "weight": 2,
+      "animations": [
+        { "atMs": 0,   "actor": "tori", "key": "tori.throw_windup" },
+        { "atMs": 0,   "actor": "uke",  "key": "uke.lifted" },
+        { "atMs": 450, "actor": "tori", "key": "tori.shiho_cut" },
+        { "atMs": 450, "actor": "uke",  "key": "uke.thrown_back" }
+      ],
+      "onJudge": {
+        "perfect": { "cues": [{ "atMs": 0, "actor": "fx", "key": "fx.impact_flash" }] },
+        "bad":     { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.throw_weak" }] },
+        "miss":    { "replaceRemaining": true, "cues": [{ "atMs": 0, "actor": "tori", "key": "tori.throw_miss" }] }
+      },
+      "spacing": { "targetPx": 24, "anchor": "tori", "moveMs": 90 }
+    }
+  ],
+
+  "scoring": {
+    "points": { "perfect": 100, "good": 60, "bad": 20, "miss": 0 }
+  },
+
+  "failure": {
+    "abortOnMiss": ["intro", "throw"],
+    "maxConsecutiveMiss": 2,
+    "failOnNoInput": true
+  },
+
+  "ukemi": {
+    "thresholds": { "perfect": 0.85, "good": 0.55 },
+    "results": {
+      "perfect": {
+        "label": "깨끗한 후방낙법",
+        "durationMs": 900,
+        "animations": [
+          { "atMs": 0, "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0, "actor": "uke",  "key": "uke.ukemi_back_roll" }
+        ],
+        "spacing": { "targetPx": 80, "anchor": "uke", "moveMs": 360 }
+      },
+      "good": {
+        "label": "흐트러진 낙법",
+        "durationMs": 900,
+        "animations": [
+          { "atMs": 0, "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0, "actor": "uke",  "key": "uke.ukemi_sloppy" }
+        ],
+        "spacing": { "targetPx": 66, "anchor": "uke", "moveMs": 300 }
+      },
+      "bad": {
+        "label": "낙법 실패 — 처박힘",
+        "durationMs": 1100,
+        "animations": [
+          { "atMs": 0,   "actor": "tori", "key": "tori.zanshin" },
+          { "atMs": 0,   "actor": "uke",  "key": "uke.ukemi_crash" },
+          { "atMs": 300, "actor": "fx",   "key": "fx.dust" }
+        ],
+        "spacing": { "targetPx": 48, "anchor": "uke", "moveMs": 200 }
+      }
+    }
+  }
+}
