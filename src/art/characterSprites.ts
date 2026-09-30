@@ -5,6 +5,8 @@ import { SPRITES, SPRITE_FOOT_Y, SPRITE_SIZE, type SpriteKey } from './sprites.g
 export const CHARACTER_TEXTURES = {
   player: 'player_idle',
   enemy: 'enemy_idle',
+  /** 입신·전환 키포즈 — Phase 2 Perfect 에서 교체 (적 앞에 그림) */
+  playerIrimi: 'player_irimi',
   /** 적 정면타 타격 키포즈 — Phase 1(적 공격) 에서 교체 */
   enemyShomenuchi: 'enemy_shomenuchi',
 } as const satisfies Record<string, SpriteKey>;

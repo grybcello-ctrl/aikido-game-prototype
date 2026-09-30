@@ -268,6 +268,16 @@ ${strike ? `    // Phase 1(적 공격 시작) ↔ 대기 를 번갈아 보여줌
       const striking = this.enemy.texture.key !== 'enemy_shomenuchi';
       this.enemy.setTexture(striking ? 'enemy_shomenuchi' : 'enemy_idle'); // ← Phase 1 발동 시 교체
       this.label.setText(striking ? 'Phase 1: enemy_shomenuchi' : 'enemy_idle');
+      if (striking && this.textures.exists('player_irimi')) {
+        // Phase 2 Perfect: 입신 포즈로 교체 + 적의 사각(바로 옆·안쪽)으로 짧게 파고듦
+        this.time.delayedCall(350, () => {
+          this.player.setTexture('player_irimi');
+          this.tweens.add({ targets: this.player, x: this.enemy.x - 24, duration: 60, ease: 'Cubic.easeOut' });
+          this.label.setText('Phase 2 Perfect: player_irimi');
+        });
+      } else {
+        this.player.setTexture('player_idle').setX(W / 2 - 48);
+      }
     };
     this.time.addEvent({ delay: 900, loop: true, callback: toggle });
     this.input.on('pointerdown', toggle);

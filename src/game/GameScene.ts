@@ -404,7 +404,11 @@ export class GameScene extends Phaser.Scene {
     for (const e of events) {
       switch (e.type) {
         case 'cue':
-          if (e.actor === 'tori') this.toriAnim.play(e.key, e.atMs);
+          if (e.actor === 'tori') {
+            this.toriAnim.play(e.key, e.atMs);
+            // 입신으로 적의 사각에 파고든 순간엔 토리를 적 앞에 그림 (평소엔 우케가 앞)
+            this.tori.setDepth(this.tori.texture.key === CHARACTER_TEXTURES.playerIrimi ? 12 : 10);
+          }
           else if (e.actor === 'uke') this.ukeAnim.play(e.key, e.atMs);
           else {
             const c = this.contactAt(e.atMs);
@@ -442,7 +446,9 @@ export class GameScene extends Phaser.Scene {
 
   private onJudge(e: Ev<'judge'>): void {
     // 판정 순간 거리 좁히기 (Perfect = 목표 그대로, Good/Bad = 덜 좁힘, Miss = 모드 규칙)
-    this.spacing.onJudge(this.phaseOf(e.beatIndex).spacing, e.grade, e.atMs);
+    // 등급별 반응에 spacing 이 있으면 우선 (Phase 2 Perfect: 적의 사각으로 순간 파고듦)
+    const phase = this.phaseOf(e.beatIndex);
+    this.spacing.onJudge(phase.onJudge?.[e.grade]?.spacing ?? phase.spacing, e.grade, e.atMs);
 
     const r = this.run;
     r.combo = e.grade === 'perfect' ? r.combo + 1 : 0;
