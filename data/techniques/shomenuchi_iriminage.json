@@ -89,6 +89,12 @@
     "points": { "perfect": 100, "good": 60, "bad": 20, "miss": 0 }
   },
 
+  "failure": {
+    "abortOnMiss": ["intro", "throw"],
+    "maxConsecutiveMiss": 2,
+    "failOnNoInput": true
+  },
+
   "ukemi": {
     "thresholds": { "perfect": 0.85, "good": 0.55 },
     "results": {

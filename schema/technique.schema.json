@@ -30,7 +30,8 @@
       "minItems": 3
     },
     "scoring": { "$ref": "#/$defs/scoring" },
-    "ukemi": { "$ref": "#/$defs/ukemiMapping" }
+    "ukemi": { "$ref": "#/$defs/ukemiMapping" },
+    "failure": { "$ref": "#/$defs/failureRules" }
   },
   "additionalProperties": false,
 
@@ -156,6 +157,30 @@
       "unevaluatedProperties": false
     },
 
+    "failureRules": {
+      "description": "기술 실패(낙법 없이 종료) 조건. 생략하면 기본값 적용. 실패 시 이후 판정·기본 큐는 취소되고, 실패를 일으킨 판정의 onJudge 반응 큐만 끝까지 재생된다.",
+      "type": "object",
+      "properties": {
+        "abortOnMiss": {
+          "description": "이 페이즈 타입에서 Miss 가 나면 즉시 실패 (예: 도입부 Miss = 정면타 피격)",
+          "type": "array",
+          "items": { "enum": ["intro", "progression", "throw"] },
+          "uniqueItems": true,
+          "default": []
+        },
+        "maxConsecutiveMiss": {
+          "description": "연속 Miss 가 이 횟수에 도달하면 실패. 생략 = 제한 없음",
+          "type": "integer",
+          "minimum": 1
+        },
+        "failOnNoInput": {
+          "description": "모든 판정이 Miss(유효 입력 0회)로 끝나면 실패",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
     "inputRules": {
       "type": "object",
       "properties": {
