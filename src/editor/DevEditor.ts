@@ -120,7 +120,7 @@ export class DevEditor {
     this.running = on;
     if (!this.isMounted) return;
     this.stopBtn.disabled = !on;
-    this.testBtn.textContent = on ? '↻ RE-TEST' : '▶ TEST';
+    this.testBtn.textContent = on ? '▶ RE-TEST' : '▶ TEST';
     this.runEl.textContent = on ? '● 테스트 중 — Space / 화면 클릭 = 입력 · Esc = 정지' : '대기 중';
     this.runEl.className = on ? 'dev-running' : 'hint';
     if (!on) this.changedEl.textContent = '';
@@ -185,6 +185,7 @@ export class DevEditor {
     this.testBtn = h('button', { class: 'test', on: { click: () => this.test() } }, '▶ TEST');
     this.stopBtn = h('button', { on: { click: () => this.stop() } }, '■ STOP');
     this.nSelect = h('select', { title: '테스트할 진행부 횟수 N' });
+    this.nSelect.addEventListener('change', () => { this.nSelect.dataset.user = '1'; });
     this.runEl = h('span', { class: 'hint' }, '대기 중');
     this.changedEl = h('span', { class: 'warn' }, '');
     this.logEl = h('ol', {});
@@ -236,7 +237,7 @@ export class DevEditor {
         const issues = this.issuesOf(t);
         const total = totalOf(t);
         return h('li', { class: i === this.sel ? 'sel' : '', on: { click: () => this.select(i) } },
-          h('div', { class: 'n' }, t.name || '(이름 없음)', issues.errors.length ? h('i', { class: 'err', title: issues.errors.join('\n') }, `⚠ ${issues.errors.length}`) : h('i', { class: 'ok' }, '✓')),
+          h('div', { class: 'n' }, t.name || '(이름 없음)', issues.errors.length ? h('i', { class: 'err', title: issues.errors.join('\n') }, `오류 ${issues.errors.length}`) : h('i', { class: 'ok' }, 'OK')),
           h('div', { class: 'm' }, `${t.id} · 총 ${total ?? '?'}ms · 진행 ×${t.phases?.[1]?.repeat?.default ?? '?'}`),
         );
       }),
@@ -329,7 +330,7 @@ export class DevEditor {
     this.refreshers.push(() => {
       title.textContent = t.name || '(이름 없음)';
       const { errors } = this.issuesOf(t);
-      pill.textContent = errors.length ? `⚠ 오류 ${errors.length}` : '✓ 유효';
+      pill.textContent = errors.length ? `오류 ${errors.length}` : '유효';
       pill.className = `dev-status ${errors.length ? 'ng' : 'ok'}`;
     });
     const head = h('div', { class: 'dev-form-head' },
@@ -609,7 +610,7 @@ export class DevEditor {
       box.replaceChildren(...[
         errors.length
           ? h('div', { class: 'err' }, `오류 ${errors.length}개 — 고치기 전에는 TEST / PLAY 에 쓸 수 없습니다`)
-          : h('div', { class: 'ok' }, '✓ 규칙 통과 — TEST 와 PLAY MODE 에서 사용 가능'),
+          : h('div', { class: 'ok' }, '규칙 통과 — TEST 와 PLAY MODE 에서 사용 가능'),
         errors.length || warnings.length
           ? h('ul', { class: 'dev-issues' }, ...errors.map((e) => h('li', {}, e)), ...warnings.map((w) => h('li', { class: 'w' }, w)))
           : null,
@@ -629,7 +630,7 @@ export class DevEditor {
     const status = h('div', { class: 'st' });
     const input = h('input', { type: 'text', list: `dev-keys-${actor}`, spellcheck: 'false', value: slotCue(cues(), actor)?.key ?? '', placeholder: `${actor}.xxx` });
     const file = h('input', { type: 'file', accept: 'image/png,image/svg+xml,.png,.svg', style: 'display:none' });
-    const upBtn = h('button', { class: 'small', title: '로컬 PNG / SVG 업로드 (권장 64×64, 발바닥 = 이미지 아래쪽)', on: { click: () => file.click() } }, '📁 업로드');
+    const upBtn = h('button', { class: 'small', title: '로컬 PNG / SVG 업로드 (권장 64×64, 발바닥 = 이미지 아래쪽)', on: { click: () => file.click() } }, '업로드…');
 
     const show = () => {
       const key = slotCue(cues(), actor)?.key ?? '';
@@ -678,10 +679,10 @@ export class DevEditor {
     const custom = this.pack.animations.sequences[key];
     if (custom?.image) {
       const uri = this.pack.assets[custom.image];
-      return uri ? { uri, text: `업로드 이미지 (${custom.image})` } : { text: `⚠ 업로드 이미지 데이터 없음 (${custom.image})`, warn: true };
+      return uri ? { uri, text: `업로드 이미지 (${custom.image})` } : { text: `! 업로드 이미지 데이터 없음 (${custom.image})`, warn: true };
     }
     const def = this.host.manifest.sequences[key];
-    if (!def) return { text: '⚠ 등록되지 않은 Key → 테스트 시 마젠타 체크무늬', warn: true };
+    if (!def) return { text: '! 등록되지 않은 Key → 테스트 시 마젠타 체크무늬', warn: true };
     const sprite = def.image ? SPRITES[def.image as keyof typeof SPRITES] : undefined;
     if (sprite) return { uri: sprite.uri, text: `픽셀 아트 ${def.image}` };
     return { uri: this.placeholderThumb(key, def.pose ?? 'stand', actor), text: `플레이스홀더 (pose ${def.pose ?? 'stand'} · ${def.frames}프레임)` };
@@ -732,7 +733,7 @@ export class DevEditor {
         img = await loadImage(uri);
         note = `${f.name} · 크기 없는 SVG → 64×64 PNG 로 변환`;
       }
-      if (img.naturalWidth > 128 || img.naturalHeight > 128) note += ' · ⚠ 큼 (64×64 권장, 확대 없이 1:1 표시)';
+      if (img.naturalWidth > 128 || img.naturalHeight > 128) note += ' · 주의: 큼 (64×64 권장, 확대 없이 1:1 표시)';
       const tex = assetKeyFor(uri);
       this.pack.assets[tex] = uri;
       const seq = `${CUSTOM_SEQ_PREFIX}${t.id}_${slotId}`.replace(/[^a-z0-9_.]/g, '_');
@@ -763,7 +764,10 @@ export class DevEditor {
       this.nSelect.replaceChildren();
       return;
     }
-    const keep = prev >= r.min && prev <= r.max && this.nSelect.dataset.tech === t.id ? prev : r.default;
+    // 사용자가 직접 고른 값만 유지 (회차를 추가하면 기본 N 을 따라감)
+    const chosen = this.nSelect.dataset.tech === t.id && this.nSelect.dataset.user === '1';
+    const keep = chosen && prev >= r.min && prev <= r.max ? prev : r.default;
+    if (this.nSelect.dataset.tech !== t.id) this.nSelect.dataset.user = '';
     this.nSelect.replaceChildren(...Array.from({ length: r.max - r.min + 1 }, (_, i) => {
       const n = r.min + i;
       return h('option', { value: String(n) }, n === r.default ? `${n} (기본)` : String(n));
@@ -778,7 +782,7 @@ export class DevEditor {
     syncTotal(t);
     const { errors } = this.issuesOf(t);
     if (errors.length) {
-      this.log(`✗ TEST 불가 — 오류 ${errors.length}개 (폼 아래 '검증' 참고)`, 'fail');
+      this.log(`TEST 불가 — 오류 ${errors.length}개 (폼 아래 '검증' 참고)`, 'fail');
       for (const e of errors.slice(0, 6)) this.log(`   ${e}`, 'fail');
       this.formEl.querySelector('#dev-validation')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       return;
@@ -824,7 +828,7 @@ export class DevEditor {
     const err = savePack(this.pack);
     if (!this.isMounted) return;
     const time = new Date().toLocaleTimeString();
-    this.saveEl.textContent = err ?? `자동 저장 ✓ ${time}`;
+    this.saveEl.textContent = err ?? `자동 저장됨 ${time}`;
     this.saveEl.className = `dev-save${err ? ' err' : ''}`;
   }
 
@@ -857,7 +861,7 @@ export class DevEditor {
       const ok = await copyText(json);
       status.className = ok ? 'ok' : 'warn';
       status.textContent = ok
-        ? `✓ 클립보드에 복사됨 — 기술 ${pruned.techniques.length}개 · 업로드 이미지 ${Object.keys(pruned.assets).length}개 · ${(json.length / 1024).toFixed(1)}KB`
+        ? `클립보드에 복사됨 — 기술 ${pruned.techniques.length}개 · 업로드 이미지 ${Object.keys(pruned.assets).length}개 · ${(json.length / 1024).toFixed(1)}KB`
         : '자동 복사가 막혔습니다. 아래 텍스트를 전체 선택(Ctrl+A) 후 복사(Ctrl+C) 하세요.';
       if (!ok) {
         ta.focus();
@@ -866,7 +870,7 @@ export class DevEditor {
     };
     this.modal('Export JSON — 스킬 팩 (schema/skillpack.schema.json)', [
       status,
-      bad.length ? h('div', { class: 'warn' }, `⚠ 규칙 위반 기술 ${bad.length}개 포함 (${bad.map((t) => t.name || t.id).join(', ')}) — 게임에서는 제외됩니다`) : null,
+      bad.length ? h('div', { class: 'warn' }, `! 규칙 위반 기술 ${bad.length}개 포함 (${bad.map((t) => t.name || t.id).join(', ')}) — 게임에서는 제외됩니다`) : null,
       h('div', { class: 'hint' }, 'techniques[] 의 각 항목은 technique.schema.json 그대로라 data/techniques/*.json 으로 떼어 써도 됩니다.'),
       ta,
     ].filter((x): x is NonNullable<typeof x> => x !== null), [
