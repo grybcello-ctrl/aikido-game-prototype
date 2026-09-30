@@ -146,19 +146,25 @@ export const drawFigure = (ctx: Ctx, pose: PoseHint, t: number, pal: Palette, ox
   ];
   for (const { o, color } of passes) {
     const c = (col: string) => color ?? col;
-    stroke(ctx, shoulder, backHand, 3 + o, c(pal.giShade), map);
-    stroke(ctx, hip, back, 6 + o, c(pal.hakama), map);
-    stroke(ctx, hip, front, 6 + o, c(pal.hakama), map);
-    stroke(ctx, hip, shoulder, 9 + o, c(pal.gi), map);
-    disc(ctx, head, 4 + Math.ceil(o / 2), c(pal.skin), map);
-    stroke(ctx, shoulder, elbow, 4 + o, c(pal.gi), map);
-    stroke(ctx, elbow, hand, 3 + o, c(pal.gi), map);
+    // 굵기는 64x64 대기 스프라이트의 실루엣(넓은 소매·퍼진 하카마)에 맞춤
+    stroke(ctx, shoulder, backHand, 5 + o, c(pal.giShade), map);
+    stroke(ctx, hip, back, 9 + o, c(pal.hakama), map);
+    stroke(ctx, hip, front, 9 + o, c(pal.hakama), map);
+    stroke(ctx, { x: hip.x, y: hip.y - 6 }, { x: (back.x + front.x) / 2, y: 2 }, 12 + o, c(pal.hakama), map);
+    stroke(ctx, hip, shoulder, 12 + o, c(pal.gi), map);
+    disc(ctx, head, 5 + Math.ceil(o / 2), c(pal.skin), map);
+    stroke(ctx, shoulder, elbow, 6 + o, c(pal.gi), map);
+    stroke(ctx, elbow, hand, 5 + o, c(pal.gi), map);
   }
   // 디테일: 은발(뒤통수·정수리), 띠, 손, 소매 음영
-  const back1 = { x: head.x - Math.cos(L) * 1.5 - Math.sin(L) * 0.5, y: head.y + 1 };
-  disc(ctx, back1, 3, pal.hairShade, map);
-  disc(ctx, { x: back1.x + 0.5, y: back1.y + 1 }, 2, pal.hair, map);
-  stroke(ctx, { x: hip.x - 3, y: hip.y + 1 }, { x: hip.x + 3, y: hip.y + 1 }, 2, pal.belt, map);
+  // 은발은 뒤통수·정수리 쪽만 → 앞쪽 얼굴(피부)이 보이게. 눈 1px
+  const back1 = { x: head.x - Math.cos(L) * 2.5 - Math.sin(L) * 0.5, y: head.y + 1.5 - Math.sin(L) * 1 };
+  disc(ctx, back1, 4, pal.hairShade, map);
+  disc(ctx, { x: back1.x + 0.5, y: back1.y + 1.5 }, 3, pal.hair, map);
+  const eye = map({ x: head.x + Math.cos(L) * 2.5, y: head.y + 0.5 - Math.sin(L) * 2 });
+  ctx.fillStyle = art.palette.E.color;
+  ctx.fillRect(Math.round(eye.x), Math.round(eye.y), 1, 1);
+  stroke(ctx, { x: hip.x - 5, y: hip.y + 1 }, { x: hip.x + 5, y: hip.y + 1 }, 2, pal.belt, map);
   disc(ctx, hand, 1, pal.skin, map);
   stroke(ctx, { x: shoulder.x - 1, y: shoulder.y - 3 }, { x: hip.x - 2, y: hip.y + 3 }, 2, pal.giShade, map);
 };

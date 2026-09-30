@@ -83,6 +83,8 @@ export class GameScene extends Phaser.Scene {
   private tech!: TechniqueData;
   private techIndex = 0;
   private practiceN: number | null = null;
+  /** 이번 라운드 진행부 횟수 — 라운드마다 한 번만 뽑는다 (READY 표시·HUD·엔진이 같은 값) */
+  private roundN = 1;
   private speedIdx: number = DEFAULT_SPEED_INDEX;
   /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
   private roundStart = 0;
@@ -278,10 +280,11 @@ export class GameScene extends Phaser.Scene {
     this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
     this.lastResult = null;
     this.tech = this.pickTechnique(false);
+    this.roundN = this.pickN(this.tech);
     this.resetStage();
     this.state = 'ready';
     this.nextAt = this.local() + READY_MS;
-    const n = this.pickN(this.tech);
+    const n = this.roundN;
     this.showOverlay([
       `[${this.mode.label}]  ${this.mode.tagline}`,
       '',
@@ -354,8 +357,11 @@ export class GameScene extends Phaser.Scene {
 
   /** @param advance true = 모드 규칙에 따라 다음 기술로 (첫 라운드는 beginRun 에서 고른 기술 유지) */
   private startRound(advance: boolean): void {
-    if (advance) this.tech = this.pickTechnique(true);
-    const n = this.pickN(this.tech);
+    if (advance) {
+      this.tech = this.pickTechnique(true);
+      this.roundN = this.pickN(this.tech);
+    }
+    const n = this.roundN;
     this.engine = new TimingEngine(this.tech, {
       progressionCount: n,
       ...(this.mode.failure ? { failure: this.mode.failure } : {}),
@@ -575,7 +581,7 @@ export class GameScene extends Phaser.Scene {
     if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
     this.hudLeft.setText(parts.join('   '));
 
-    const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
+    const n = this.engine?.timeline.progressionCount ?? this.roundN;
     this.hudRight.setText(`${this.tech.name}\n진행 ×${n}   마아이 ${distance}px`);
     const extra = m.id === 'practice' ? '   |   ←→ 기술 · ↑↓ 진행 횟수' : '';
     this.help.setText(`Space / 터치 = 입력   |   R 리셋 · H 메인 · T 배속 · 1 2 3 모드${extra}`);

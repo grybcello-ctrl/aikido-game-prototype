@@ -1650,18 +1650,22 @@
     ];
     for (const { o, color } of passes) {
       const c = (col) => color ?? col;
-      stroke(ctx, shoulder, backHand, 3 + o, c(pal.giShade), map);
-      stroke(ctx, hip, back, 6 + o, c(pal.hakama), map);
-      stroke(ctx, hip, front, 6 + o, c(pal.hakama), map);
-      stroke(ctx, hip, shoulder, 9 + o, c(pal.gi), map);
-      disc(ctx, head, 4 + Math.ceil(o / 2), c(pal.skin), map);
-      stroke(ctx, shoulder, elbow, 4 + o, c(pal.gi), map);
-      stroke(ctx, elbow, hand, 3 + o, c(pal.gi), map);
+      stroke(ctx, shoulder, backHand, 5 + o, c(pal.giShade), map);
+      stroke(ctx, hip, back, 9 + o, c(pal.hakama), map);
+      stroke(ctx, hip, front, 9 + o, c(pal.hakama), map);
+      stroke(ctx, { x: hip.x, y: hip.y - 6 }, { x: (back.x + front.x) / 2, y: 2 }, 12 + o, c(pal.hakama), map);
+      stroke(ctx, hip, shoulder, 12 + o, c(pal.gi), map);
+      disc(ctx, head, 5 + Math.ceil(o / 2), c(pal.skin), map);
+      stroke(ctx, shoulder, elbow, 6 + o, c(pal.gi), map);
+      stroke(ctx, elbow, hand, 5 + o, c(pal.gi), map);
     }
-    const back1 = { x: head.x - Math.cos(L) * 1.5 - Math.sin(L) * 0.5, y: head.y + 1 };
-    disc(ctx, back1, 3, pal.hairShade, map);
-    disc(ctx, { x: back1.x + 0.5, y: back1.y + 1 }, 2, pal.hair, map);
-    stroke(ctx, { x: hip.x - 3, y: hip.y + 1 }, { x: hip.x + 3, y: hip.y + 1 }, 2, pal.belt, map);
+    const back1 = { x: head.x - Math.cos(L) * 2.5 - Math.sin(L) * 0.5, y: head.y + 1.5 - Math.sin(L) * 1 };
+    disc(ctx, back1, 4, pal.hairShade, map);
+    disc(ctx, { x: back1.x + 0.5, y: back1.y + 1.5 }, 3, pal.hair, map);
+    const eye = map({ x: head.x + Math.cos(L) * 2.5, y: head.y + 0.5 - Math.sin(L) * 2 });
+    ctx.fillStyle = tori_idle_default.palette.E.color;
+    ctx.fillRect(Math.round(eye.x), Math.round(eye.y), 1, 1);
+    stroke(ctx, { x: hip.x - 5, y: hip.y + 1 }, { x: hip.x + 5, y: hip.y + 1 }, 2, pal.belt, map);
     disc(ctx, hand, 1, pal.skin, map);
     stroke(ctx, { x: shoulder.x - 1, y: shoulder.y - 3 }, { x: hip.x - 2, y: hip.y + 3 }, 2, pal.giShade, map);
   };
@@ -2323,6 +2327,8 @@
       __publicField(this, "tech");
       __publicField(this, "techIndex", 0);
       __publicField(this, "practiceN", null);
+      /** 이번 라운드 진행부 횟수 — 라운드마다 한 번만 뽑는다 (READY 표시·HUD·엔진이 같은 값) */
+      __publicField(this, "roundN", 1);
       __publicField(this, "speedIdx", DEFAULT_SPEED_INDEX);
       /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
       __publicField(this, "roundStart", 0);
@@ -2490,10 +2496,11 @@
       this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
       this.lastResult = null;
       this.tech = this.pickTechnique(false);
+      this.roundN = this.pickN(this.tech);
       this.resetStage();
       this.state = "ready";
       this.nextAt = this.local() + READY_MS;
-      const n = this.pickN(this.tech);
+      const n = this.roundN;
       this.showOverlay([
         `[${this.mode.label}]  ${this.mode.tagline}`,
         "",
@@ -2558,8 +2565,11 @@
     }
     /** @param advance true = 모드 규칙에 따라 다음 기술로 (첫 라운드는 beginRun 에서 고른 기술 유지) */
     startRound(advance) {
-      if (advance) this.tech = this.pickTechnique(true);
-      const n = this.pickN(this.tech);
+      if (advance) {
+        this.tech = this.pickTechnique(true);
+        this.roundN = this.pickN(this.tech);
+      }
+      const n = this.roundN;
       this.engine = new TimingEngine(this.tech, {
         progressionCount: n,
         ...this.mode.failure ? { failure: this.mode.failure } : {},
@@ -2752,7 +2762,7 @@
       if (m.id === "arcade") parts.push(`점수 ${r.score + (playing ? live.score.raw : 0)}`, `콤보 ${r.combo}`);
       if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
       this.hudLeft.setText(parts.join("   "));
-      const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
+      const n = this.engine?.timeline.progressionCount ?? this.roundN;
       this.hudRight.setText(`${this.tech.name}
 진행 ×${n}   마아이 ${distance}px`);
       const extra = m.id === "practice" ? "   |   ←→ 기술 · ↑↓ 진행 횟수" : "";
