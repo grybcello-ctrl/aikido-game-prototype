@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/animations.schema.json",
   "sequences": {
-    "tori.kamae":          { "frames": 4, "frameRate": 10, "repeat": -1, "pose": "stand" },
+    "tori.kamae":          { "frames": 1, "frameRate": 10, "repeat": -1, "pose": "stand", "image": "player_idle" },
     "tori.irimi_enter":    { "frames": 4, "frameRate": 12, "holds": { "0": 2, "3": 3 }, "pose": "step_in" },
     "tori.irimi_stagger":  { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "stagger" },
     "tori.hit_head":       { "frames": 5, "frameRate": 12, "holds": { "0": 2, "4": 4 }, "pose": "hit" },
@@ -14,9 +14,9 @@
     "tori.throw_weak":     { "frames": 4, "frameRate": 10, "pose": "weak" },
     "tori.throw_miss":     { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "whiff" },
     "tori.grab_stuck":     { "frames": 4, "frameRate": 10, "holds": { "3": 3 }, "pose": "stuck" },
-    "tori.zanshin":        { "frames": 2, "frameRate": 10, "repeat": -1, "holds": { "0": 6, "1": 6 }, "pose": "zanshin" },
+    "tori.zanshin":        { "frames": 2, "frameRate": 10, "repeat": -1, "holds": { "0": 6, "1": 6 }, "pose": "zanshin", "image": "player_idle" },
 
-    "uke.kamae":           { "frames": 4, "frameRate": 10, "repeat": -1, "pose": "stand" },
+    "uke.kamae":           { "frames": 1, "frameRate": 10, "repeat": -1, "pose": "stand", "image": "enemy_idle" },
     "uke.shomen_windup":   { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "windup" },
     "uke.shomen_strike":   { "frames": 4, "frameRate": 12, "holds": { "3": 3 }, "pose": "strike" },
     "uke.grab_reach":      { "frames": 4, "frameRate": 10, "holds": { "3": 2 }, "pose": "reach" },

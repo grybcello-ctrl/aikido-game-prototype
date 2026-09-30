@@ -16,6 +16,8 @@ export interface SequenceDef {
   /** { 프레임 인덱스: 틱 수(≥2) } */
   holds?: Record<string, number>;
   pose?: PoseHint;
+  /** 단일 이미지 텍스처 키 (예: 'player_idle'). 로드돼 있으면 atlas·pose 보다 우선. frames 는 1로 취급 */
+  image?: string;
   atlas?: { texture: string; prefix: string; start?: number; zeroPad?: number };
 }
 

@@ -3,6 +3,7 @@ import manifestJson from '../../data/animations.json';
 import katatedoriShihonage from '../../data/techniques/katatedori_shihonage.json';
 import shomenuchiIriminage from '../../data/techniques/shomenuchi_iriminage.json';
 import { FLOOR_Y, GAME_HEIGHT, GAME_WIDTH, STAGE_CENTER_X } from '../config/gameConfig';
+import { CHARACTER_TEXTURES, addCharacterSprite, preloadCharacterSprites } from '../art/characterSprites';
 import { TimingEngine } from '../engine/TimingEngine';
 import type { EngineEvent, EngineResult, FailReason } from '../engine/types';
 import { validateTechnique } from '../engine/validate';
@@ -82,6 +83,8 @@ export class GameScene extends Phaser.Scene {
   private tech!: TechniqueData;
   private techIndex = 0;
   private practiceN: number | null = null;
+  /** 이번 라운드 진행부 횟수 — 라운드마다 한 번만 뽑는다 (READY 표시·HUD·엔진이 같은 값) */
+  private roundN = 1;
   private speedIdx: number = DEFAULT_SPEED_INDEX;
   /** 라운드 시작 가상시각. 로컬 시간 = 가상시각 - roundStart (= 엔진 atMs 축) */
   private roundStart = 0;
@@ -127,6 +130,11 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────────── setup ─────────────────────────────
 
+  /** 64x64 SVG 픽셀 아트 (player_idle / enemy_idle). 타이틀에서 이미 로드됐으면 건너뜀 */
+  preload(): void {
+    preloadCharacterSprites(this);
+  }
+
   create(): void {
     this.clock = new GameClock(this.game.loop.now);
     this.loadTechniques();
@@ -134,8 +142,9 @@ export class GameScene extends Phaser.Scene {
     this.makeParticleTexture();
     this.drawDojo();
 
-    this.tori = this.add.sprite(0, FLOOR_Y, '__DEFAULT').setOrigin(0.5, 1).setDepth(10);
-    this.uke = this.add.sprite(0, FLOOR_Y, '__DEFAULT').setOrigin(0.5, 1).setDepth(11).setFlipX(true);
+    // 캐릭터 = 픽셀 아트 스프라이트 (정수 배율 1, 내부 640x360 → 창에 맞춘 정수 줌). 우케는 좌우 반전
+    this.tori = addCharacterSprite(this, STAGE_CENTER_X - 28, FLOOR_Y, CHARACTER_TEXTURES.player).setDepth(10);
+    this.uke = addCharacterSprite(this, STAGE_CENTER_X + 28, FLOOR_Y, CHARACTER_TEXTURES.enemy).setDepth(11).setFlipX(true);
     this.toriAnim = new AnimationController(this.tori, this.seqs);
     this.ukeAnim = new AnimationController(this.uke, this.seqs);
     this.fx = new FxLayer(this, this.seqs, 30);
@@ -271,10 +280,11 @@ export class GameScene extends Phaser.Scene {
     this.run = { score: 0, rounds: 0, lives: this.mode.lives ?? 0, combo: 0, maxCombo: 0 };
     this.lastResult = null;
     this.tech = this.pickTechnique(false);
+    this.roundN = this.pickN(this.tech);
     this.resetStage();
     this.state = 'ready';
     this.nextAt = this.local() + READY_MS;
-    const n = this.pickN(this.tech);
+    const n = this.roundN;
     this.showOverlay([
       `[${this.mode.label}]  ${this.mode.tagline}`,
       '',
@@ -347,8 +357,11 @@ export class GameScene extends Phaser.Scene {
 
   /** @param advance true = 모드 규칙에 따라 다음 기술로 (첫 라운드는 beginRun 에서 고른 기술 유지) */
   private startRound(advance: boolean): void {
-    if (advance) this.tech = this.pickTechnique(true);
-    const n = this.pickN(this.tech);
+    if (advance) {
+      this.tech = this.pickTechnique(true);
+      this.roundN = this.pickN(this.tech);
+    }
+    const n = this.roundN;
     this.engine = new TimingEngine(this.tech, {
       progressionCount: n,
       ...(this.mode.failure ? { failure: this.mode.failure } : {}),
@@ -568,7 +581,7 @@ export class GameScene extends Phaser.Scene {
     if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
     this.hudLeft.setText(parts.join('   '));
 
-    const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
+    const n = this.engine?.timeline.progressionCount ?? this.roundN;
     this.hudRight.setText(`${this.tech.name}\n진행 ×${n}   마아이 ${distance}px`);
     const extra = m.id === 'practice' ? '   |   ←→ 기술 · ↑↓ 진행 횟수' : '';
     this.help.setText(`Space / 터치 = 입력   |   R 리셋 · H 메인 · T 배속 · 1 2 3 모드${extra}`);

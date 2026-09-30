@@ -44,6 +44,16 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 | `src/ui/` | `PixelButton` (Graphics + Text 픽셀 버튼) |
 | `src/config/` | 640×360 Pixel-perfect 설정, 리미티드 애니메이션(10~12fps) 정책 |
 
+## 픽셀 아트 파이프라인
+
+`art/tori_idle.json` (64×64 문자 그리드 + 팔레트) → `npm run build:sprites` →
+`src/art/sprites.generated.ts` (최적화 SVG Data URI: 플레이어 3.5KB · 적 4.1KB), `art/preview/*.png`, `play/sprite-demo.html`
+
+- SVG: 색마다 `<path>` 1개, 픽셀 가로줄 = 1px stroke 선분, 칠 순서 탐색으로 선분 최소화, `shape-rendering="crispEdges"`. 빌드 시 SVG → 픽셀 역변환으로 원본과 1픽셀도 다르지 않은지 검사
+- 로드: `preload()` 에서 `load.image('player_idle' | 'enemy_idle', dataURI)` (`<img>` 디코딩 → `file://` 에서도 동작)
+- 사용: 대기·잔심 포즈(`animations.json` 의 `"image"`)는 이 스프라이트, 동작 포즈는 같은 팔레트의 절차적 플레이스홀더 (적은 붉은 링 포함)
+- 선명도: 캐릭터 배율은 정수만 허용(`addCharacterSprite`), `pixelArt`·`roundPixels`, 창에 맞춘 정수 줌
+
 ## 설계 요점
 
 - **Pixel-perfect**: 내부 640×360, `pixelArt`·`roundPixels`, `Scale.NONE` + 창 크기에 맞춘 **정수 배율 줌** (비정수 확대 번짐 없음)
@@ -51,12 +61,13 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 - **시작 Key 재생**: 엔진 `cue` 이벤트(`atMs`, `actor`, `key`) → `AnimationController.play(key, atMs)`. 매니페스트에 없는 Key 는 경고 후 마젠타 대체 시퀀스로 계속 진행
 - **거리 좁히기**: 기술 JSON 의 `spacing` — 판정 순간(플레이어 입력 시각)에 목표 거리로 이동. Perfect 는 목표 그대로, Good/Bad 는 `slackPx` 만큼 덜 좁히고, Miss 는 이동 없음(수련 모드는 이동). 낙법 시작 시 우케가 날아가는 거리도 데이터로
 - **히트스톱**: `GameClock.freeze()` 가 가상시간을 멈춤 → 엔진 판정·애니메이션·거리 이동이 함께 정지, 파티클·셰이크는 실시간. 입력 타임스탬프도 같은 시계로 변환하므로 판정 ms 가 어긋나지 않음
-- **캐릭터**: 토리 = 파랑, 우케 = 빨강 플레이스홀더. 두 캐릭터가 근접(52~56px)한 상태에서 시작
+- **캐릭터**: 64×64 픽셀 아트 (은발 · 흰 도복 · 검은 하카마, 자연체). 토리 = 원본 색 + 짙은 외곽선, 우케 = 같은 스프라이트 + 바깥 2px `#FF0000` 적 하이라이트. 근접(52~56px) 상태에서 시작
 - **아트 교체**: `animations.json` 에 `atlas: { texture, prefix }` 를 넣고 텍스처를 로드하면 플레이스홀더 대신 실제 스프라이트 사용
 
 ```bash
 npm run validate      # 스키마 + 의미 규칙 + 시퀀스 Key 교차 검사 + N별 타임라인
 npm run typecheck
-npm run build:single  # play/index.html + play/index.offline.html 재생성
+npm run build:sprites # 픽셀 아트 → SVG Data URI + 미리보기 + play/sprite-demo.html
+npm run build:single  # (sprites 포함) play/index.html + play/index.offline.html 재생성
 npm run build         # vite 빌드 (dist/)
 ```
