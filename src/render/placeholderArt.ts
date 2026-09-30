@@ -1,4 +1,5 @@
 import art from '../../art/tori_idle.json';
+import { SPRITES } from '../art/sprites.generated';
 import type { PoseHint } from '../types/animations';
 
 /**
@@ -75,7 +76,7 @@ export const TORI_PALETTE: Palette = {
   hair: P.H.color, hairShade: P.h.color, outline: P.K.color,
 };
 /** 우케(적): 같은 모습 + 바깥 붉은 외곽선 */
-export const UKE_PALETTE: Palette = { ...TORI_PALETTE, highlight: art.enemyOutline.color };
+export const UKE_PALETTE: Palette = { ...TORI_PALETTE, highlight: SPRITES.enemy_idle.enemyOutline.color };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerpJoint = (a: Joint, b: Joint, t: number): Joint => ({

@@ -1,22 +1,18 @@
 // 픽셀 아트 원본(art/*.json, 64x64 문자 그리드) → 최적화된 SVG Data URI
-//   A (player): 원본 색 + 짙은 회흑 외곽선
-//   B (enemy) : A + 실루엣 바깥 2px 붉은(#FF0000) 하이라이트 (오버워치 적군 외곽선 스타일)
+//   각 원본 파일의 outputs 마다 텍스처 1개:
+//   - enemyOutline 없음 → 원본 색 + 짙은 회흑 외곽선 (플레이어)
+//   - enemyOutline 있음 → + 실루엣 바깥 N px 붉은(#FF0000) 하이라이트 (오버워치 적군 외곽선 스타일)
 // 출력: src/art/sprites.generated.ts, art/preview/*.png (×8), play/sprite-demo.html
 // 사용: npm run build:sprites
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const art = JSON.parse(readFileSync(join(root, 'art/tori_idle.json'), 'utf8'));
-const N = art.size;
+const N = 64;
 const TRANSPARENT = '.';
 const RED_KEY = '@';
-
-if (art.rows.length !== N || art.rows.some((r) => r.length !== N)) throw new Error(`grid must be ${N}x${N}`);
-const colorOf = Object.fromEntries(Object.entries(art.palette).map(([k, v]) => [k, v.color.toLowerCase()]));
-for (const ch of new Set(art.rows.join(''))) if (ch !== TRANSPARENT && !colorOf[ch]) throw new Error(`palette 에 없는 글자 '${ch}'`);
 
 /** B: 실루엣을 반경 width 만큼 둥글게 팽창(dist² ≤ w² + 1) → 새로 생긴 칸을 붉은색으로 */
 const withEnemyOutline = (rows, width) => {
@@ -128,23 +124,33 @@ const rasterize = (svg) => {
 };
 const expand = (c) => (c.length === 4 ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c);
 
-// ── 두 버전 생성 + 무손실 검증 ──
-const enemyRows = withEnemyOutline(art.rows, art.enemyOutline.width);
-const colorsB = { ...colorOf, [RED_KEY]: art.enemyOutline.color.toLowerCase() };
-const versions = {
-  player: { rows: art.rows, colors: colorOf, ...toSvg(art.rows, colorOf) },
-  enemy: { rows: enemyRows, colors: colorsB, ...toSvg(enemyRows, colorsB) },
-};
-for (const [name, v] of Object.entries(versions)) {
-  const px = rasterize(v.svg);
-  for (let y = 0; y < N; y++)
-    for (let x = 0; x < N; x++) {
-      const want = v.rows[y][x] === TRANSPARENT ? null : v.colors[v.rows[y][x]];
-      const got = px[y][x] && expand(px[y][x]);
-      if (want !== got) throw new Error(`${name}: (${x},${y}) 기대 ${want} 실제 ${got}`);
-    }
-  v.uri = toDataUri(v.svg);
+// ── 원본 파일 × outputs → 텍스처 + 무손실 검증 ──
+const sprites = [];
+for (const file of readdirSync(join(root, 'art')).filter((f) => f.endsWith('.json')).sort()) {
+  const art = JSON.parse(readFileSync(join(root, 'art', file), 'utf8'));
+  if (art.size !== N || art.rows.length !== N || art.rows.some((r) => r.length !== N)) throw new Error(`${file}: grid must be ${N}x${N}`);
+  const colorOf = Object.fromEntries(Object.entries(art.palette).map(([k, v]) => [k, v.color.toLowerCase()]));
+  for (const ch of new Set(art.rows.join(''))) if (ch !== TRANSPARENT && !colorOf[ch]) throw new Error(`${file}: palette 에 없는 글자 '${ch}'`);
+  if (!Array.isArray(art.outputs) || !art.outputs.length) throw new Error(`${file}: outputs 가 비어 있음`);
+  for (const out of art.outputs) {
+    if (!/^[a-z0-9_]+$/.test(out.key)) throw new Error(`${file}: 잘못된 텍스처 키 '${out.key}'`);
+    if (sprites.some((sp) => sp.key === out.key)) throw new Error(`텍스처 키 중복 '${out.key}'`);
+    const ol = out.enemyOutline ?? null;
+    const rows = ol ? withEnemyOutline(art.rows, ol.width) : art.rows;
+    const colors = ol ? { ...colorOf, [RED_KEY]: ol.color.toLowerCase() } : colorOf;
+    const { svg, order } = toSvg(rows, colors);
+    const px = rasterize(svg);
+    for (let y = 0; y < N; y++)
+      for (let x = 0; x < N; x++) {
+        const want = rows[y][x] === TRANSPARENT ? null : colors[rows[y][x]];
+        const got = px[y][x] && expand(px[y][x]);
+        if (want !== got) throw new Error(`${out.key}: (${x},${y}) 기대 ${want} 실제 ${got}`);
+      }
+    sprites.push({ key: out.key, file, name: art.name, footY: art.footY, rows, colors, svg, order, px, uri: toDataUri(svg), outline: ol });
+  }
 }
+const byKey = Object.fromEntries(sprites.map((sp) => [sp.key, sp]));
+for (const k of ['player_idle', 'enemy_idle']) if (!byKey[k]) throw new Error(`필수 텍스처 '${k}' 없음`);
 
 // ── src/art/sprites.generated.ts ──
 const expected = (v) => {
@@ -152,24 +158,38 @@ const expected = (v) => {
   const list = [...new Set(Object.values(v.colors))];
   return { colors: list, rows: v.rows.map((r) => [...r].map((c) => (c === TRANSPARENT ? '0' : (list.indexOf(v.colors[c]) + 1).toString(36))).join('')) };
 };
-const ts = `// 자동 생성 파일: npm run build:sprites (원본: art/${art.id}.json). 직접 수정하지 말 것
+const CONST = (k) => k.toUpperCase();
+const describe = (sp) => (sp.outline ? `적: 바깥 ${sp.outline.width}px ${sp.outline.color.toUpperCase()} 하이라이트` : '플레이어: 원본 색 + 짙은 회흑 외곽선');
+const ts = `// 자동 생성 파일: npm run build:sprites (원본: art/*.json). 직접 수정하지 말 것
 /* eslint-disable */
 
 /** 스프라이트 한 변 (px) */
 export const SPRITE_SIZE = ${N};
-/** 발바닥 기준선 (px, 위에서부터). originY = SPRITE_FOOT_Y / SPRITE_SIZE */
-export const SPRITE_FOOT_Y = ${art.footY};
+/** 대기 포즈 발바닥 기준선 (px, 위에서부터). originY = footY / SPRITE_SIZE */
+export const SPRITE_FOOT_Y = ${byKey.player_idle.footY};
 
-/** 버전 A — 플레이어: 원본 색 + 짙은 회흑 외곽선 (${versions.player.svg.length} bytes) */
-export const PLAYER_IDLE_SVG = ${JSON.stringify(versions.player.svg)};
-/** 버전 B — 적: A + 바깥 ${art.enemyOutline.width}px ${art.enemyOutline.color.toUpperCase()} 하이라이트 (${versions.enemy.svg.length} bytes) */
-export const ENEMY_IDLE_SVG = ${JSON.stringify(versions.enemy.svg)};
+${sprites.map((sp) => `/** ${sp.key} — ${sp.name} · ${describe(sp)} (SVG ${sp.svg.length} bytes, 원본 art/${sp.file}) */
+export const ${CONST(sp.key)}_SVG = ${JSON.stringify(sp.svg)};
+export const ${CONST(sp.key)}_URI = ${JSON.stringify(sp.uri)};`).join('\n\n')}
 
-export const PLAYER_IDLE_URI = ${JSON.stringify(versions.player.uri)};
-export const ENEMY_IDLE_URI = ${JSON.stringify(versions.enemy.uri)};
+export interface SpriteAsset {
+  key: string;
+  svg: string;
+  uri: string;
+  /** 발바닥 기준선 (px) */
+  footY: number;
+  enemyOutline: { color: string; width: number } | null;
+}
+
+/** 텍스처 키 → 에셋 */
+export const SPRITES = {
+${sprites.map((sp) => `  ${sp.key}: { key: '${sp.key}', svg: ${CONST(sp.key)}_SVG, uri: ${CONST(sp.key)}_URI, footY: ${sp.footY}, enemyOutline: ${JSON.stringify(sp.outline)} },`).join('\n')}
+} as const satisfies Record<string, SpriteAsset>;
+
+export type SpriteKey = keyof typeof SPRITES;
 
 /** 검증용 기대 픽셀 (행 문자열: 0 = 투명, 1.. = colors[i-1]) */
-export const SPRITE_EXPECTED = ${JSON.stringify({ player: expected(versions.player), enemy: expected(versions.enemy) })};
+export const SPRITE_EXPECTED: Record<SpriteKey, { colors: string[]; rows: string[] }> = ${JSON.stringify(Object.fromEntries(sprites.map((sp) => [sp.key, expected(sp)])))};
 `;
 mkdirSync(join(root, 'src/art'), { recursive: true });
 writeFileSync(join(root, 'src/art/sprites.generated.ts'), ts);
@@ -203,48 +223,56 @@ const png = (grids, scale, gap) => {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 };
 mkdirSync(join(root, 'art/preview'), { recursive: true });
-const pxA = rasterize(versions.player.svg);
-const pxB = rasterize(versions.enemy.svg);
-writeFileSync(join(root, 'art/preview/player_idle.png'), png([pxA], 8, 0));
-writeFileSync(join(root, 'art/preview/enemy_idle.png'), png([pxB], 8, 0));
-writeFileSync(join(root, 'art/preview/side_by_side.png'), png([pxA, pxB], 6, 12));
+for (const sp of sprites) writeFileSync(join(root, `art/preview/${sp.key}.png`), png([sp.px], 8, 0));
+writeFileSync(join(root, 'art/preview/side_by_side.png'), png([byKey.player_idle.px, byKey.enemy_idle.px], 6, 12));
+if (byKey.enemy_shomenuchi)
+  writeFileSync(join(root, 'art/preview/enemy_idle_to_shomenuchi.png'), png([byKey.enemy_idle.px, byKey.enemy_shomenuchi.px], 6, 12));
 
-// ── play/sprite-demo.html: 요청 스펙 그대로의 최소 실행 예제 ──
+// ── play/sprite-demo.html: preload / create / setTexture 최소 실행 예제 ──
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const strike = byKey.enemy_shomenuchi;
 const demo = `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aikido Pixel Sprite Demo</title>
-<!-- 자동 생성: npm run build:sprites (원본 art/${art.id}.json) -->
+<!-- 자동 생성: npm run build:sprites (원본 art/*.json) -->
 <style>html,body{margin:0;height:100%;background:#050507;overflow:hidden}canvas{image-rendering:pixelated}</style>
 <script src="https://cdn.jsdelivr.net/npm/phaser@${pkg.dependencies.phaser}/dist/phaser.min.js"></script>
 </head>
 <body>
 <script>
-// 64x64 픽셀 아트 (SVG Data URI). A = 플레이어, B = 적 (바깥 2px #FF0000 외곽선)
-const PLAYER_IDLE = "${versions.player.uri}";
-const ENEMY_IDLE = "${versions.enemy.uri}";
+// 64x64 픽셀 아트 (SVG Data URI). 적 텍스처는 바깥 2px #FF0000 외곽선
+${sprites.map((sp) => `const ${CONST(sp.key)} = "${sp.uri}";`).join('\n')}
 
 const W = 640, H = 360, FLOOR = 300, SCALE = 2; // SCALE 은 반드시 정수
-const FOOT = ${art.footY} / ${N};                 // 발바닥 기준선 → originY
+const FOOT = ${byKey.player_idle.footY} / ${N};                 // 발바닥 기준선 → originY (모든 포즈 동일)
 
 class DemoScene extends Phaser.Scene {
   preload() {
     // Data URI 는 <img> 로 디코딩 → file:// 로 열어도 동작. SVG 가 64x64 로 래스터화됨
-    this.load.image('player_idle', PLAYER_IDLE);
-    this.load.image('enemy_idle', ENEMY_IDLE);
+${sprites.map((sp) => `    this.load.image('${sp.key}', ${CONST(sp.key)});`).join('\n')}
   }
   create() {
     const g = this.add.graphics(); // 배경(도장 바닥)만 Graphics
     g.fillStyle(0x16141c).fillRect(0, 0, W, FLOOR);
     g.fillStyle(0x4b5a2c).fillRect(0, FLOOR, W, H - FLOOR);
     g.fillStyle(0x1b2010).fillRect(0, FLOOR, W, 1);
-    // 캐릭터: Sprite, 정수 배율, 정수 좌표
-    this.add.sprite(W / 2 - 56, FLOOR, 'player_idle').setOrigin(0.5, FOOT).setScale(SCALE);
-    this.add.sprite(W / 2 + 56, FLOOR, 'enemy_idle').setOrigin(0.5, FOOT).setScale(SCALE).setFlipX(true);
-    this.add.text(W / 2, 24, 'player_idle  vs  enemy_idle', { fontFamily: 'monospace', fontSize: '12px', color: '#e6e6f0' }).setOrigin(0.5);
+    // 캐릭터: Sprite, 정수 배율, 정수 좌표. 적은 좌우 반전해 플레이어를 마주 봄
+    this.player = this.add.sprite(W / 2 - 48, FLOOR, 'player_idle').setOrigin(0.5, FOOT).setScale(SCALE);
+    this.enemy = this.add.sprite(W / 2 + 48, FLOOR, 'enemy_idle').setOrigin(0.5, FOOT).setScale(SCALE).setFlipX(true);
+    this.label = this.add.text(W / 2, 24, '', { fontFamily: 'monospace', fontSize: '12px', color: '#e6e6f0' }).setOrigin(0.5);
+${strike ? `    // Phase 1(적 공격 시작) ↔ 대기 를 번갈아 보여줌 (클릭/Space 로도 전환)
+    const toggle = () => {
+      const striking = this.enemy.texture.key !== 'enemy_shomenuchi';
+      this.enemy.setTexture(striking ? 'enemy_shomenuchi' : 'enemy_idle'); // ← Phase 1 발동 시 교체
+      this.label.setText(striking ? 'Phase 1: enemy_shomenuchi' : 'enemy_idle');
+    };
+    this.time.addEvent({ delay: 900, loop: true, callback: toggle });
+    this.input.on('pointerdown', toggle);
+    this.input.keyboard.on('keydown-SPACE', toggle);
+    this.label.setText('enemy_idle');` : `    this.label.setText('player_idle  vs  enemy_idle');`}
   }
 }
 
@@ -264,7 +292,7 @@ addEventListener('resize', () => game.isBooted && game.scale.setZoom(fitZoom()))
 mkdirSync(join(root, 'play'), { recursive: true });
 writeFileSync(join(root, 'play/sprite-demo.html'), demo);
 
-const kb = (s) => `${(Buffer.byteLength(s) / 1024).toFixed(2)} KB`;
-for (const [name, v] of Object.entries(versions))
-  console.log(`✓ ${name.padEnd(6)} SVG ${kb(v.svg)} · Data URI ${kb(v.uri)} · 색 ${v.order.length} · 칠 순서 ${v.order.join('')}`);
+const kb = (x) => `${(Buffer.byteLength(x) / 1024).toFixed(2)} KB`;
+for (const sp of sprites)
+  console.log(`✓ ${sp.key.padEnd(17)} SVG ${kb(sp.svg)} · Data URI ${kb(sp.uri)} · 색 ${sp.order.length} · ${sp.file}`);
 console.log(`✓ src/art/sprites.generated.ts · art/preview/*.png · play/sprite-demo.html (${kb(demo)})`);

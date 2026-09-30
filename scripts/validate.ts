@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveTimeline } from '../src/engine/timeline';
 import { validateTechnique } from '../src/engine/validate';
-import { CHARACTER_TEXTURES } from '../src/art/characterSprites';
+import { SPRITES } from '../src/art/sprites.generated';
 import type { AnimationManifest } from '../src/types/animations';
 import type { TechniqueData } from '../src/types/technique';
 
@@ -27,12 +27,13 @@ console.log('\n▶ data/animations.json');
 const manifest = readJson('data/animations.json') as AnimationManifest;
 if (!validateManifest(manifest)) for (const e of validateManifest.errors ?? []) fail(`schema ${e.instancePath || '(root)'} ${e.message}`);
 const seqKeys = new Set(Object.keys(manifest.sequences ?? {}));
-// "image" 는 코드로 로드하는 픽셀 아트 텍스처 키여야 함 (src/art/characterSprites.ts)
-const imageKeys = new Set<string>(Object.values(CHARACTER_TEXTURES));
+// "image" 는 코드로 로드하는 픽셀 아트 텍스처 키여야 함 (art/*.json → src/art/sprites.generated.ts)
+const imageKeys = new Set<string>(Object.keys(SPRITES));
 for (const [k, def] of Object.entries(manifest.sequences ?? {})) {
-  if (def.image && !imageKeys.has(def.image)) fail(`${k}.image '${def.image}' 는 로드되지 않는 텍스처 (가능: ${[...imageKeys].join(', ')})`);
-  if (def.image && !k.startsWith('fx.') && def.image === CHARACTER_TEXTURES.enemy && !k.startsWith('uke.')) fail(`${k}: 적 텍스처는 uke.* 시퀀스에만`);
-  if (def.image && def.image === CHARACTER_TEXTURES.player && !k.startsWith('tori.')) fail(`${k}: 플레이어 텍스처는 tori.* 시퀀스에만`);
+  if (!def.image) continue;
+  if (!imageKeys.has(def.image)) fail(`${k}.image '${def.image}' 는 로드되지 않는 텍스처 (가능: ${[...imageKeys].join(', ')})`);
+  if (def.image.startsWith('enemy_') && !k.startsWith('uke.')) fail(`${k}: 적 텍스처(${def.image})는 uke.* 시퀀스에만`);
+  if (def.image.startsWith('player_') && !k.startsWith('tori.')) fail(`${k}: 플레이어 텍스처(${def.image})는 tori.* 시퀀스에만`);
 }
 const usedKeys = new Set<string>(['tori.kamae', 'uke.kamae']); // 씬 대기 포즈
 console.log(`  시퀀스 ${seqKeys.size}개`);
