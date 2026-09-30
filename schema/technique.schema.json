@@ -3,7 +3,7 @@
   "$id": "https://aikido-game-prototype.local/schema/technique.schema.json",
   "title": "Aikido Technique (one-button)",
   "description": "기술 1개 = 도입부(1회) → 진행부(1~N회 반복) → 던지기(1회) → 낙법(점수 분기). 모든 시간은 ms 정수. 페이즈 안의 시간(perfectMs, atMs)은 해당 페이즈(진행부는 해당 회차) 시작 기준 상대값.",
-  "$comment": "스키마로 표현할 수 없는 규칙(검증기 담당): (1) totalDurationMs = intro.durationMs + progression.durationMs × repeat.default + throw.durationMs (2) 각 페이즈 perfect ≤ good ≤ bad (early/late 각각) (3) perfectMs - bad.early ≥ 0, perfectMs + bad.late ≤ durationMs (4) atMs < durationMs (5) repeat.min ≤ repeat.default ≤ repeat.max (6) ukemi.thresholds.perfect > ukemi.thresholds.good (7) 낙법 결과마다 uke 큐 1개 이상 (8) points.perfect ≥ good ≥ bad ≥ miss, points.perfect > 0",
+  "$comment": "스키마로 표현할 수 없는 규칙(검증기 담당): (1) totalDurationMs = intro.durationMs + 진행부 회차 길이 합(N = repeat.default, steps 가 있으면 steps[i % length].durationMs, 없으면 progression.durationMs) + throw.durationMs (2) 각 페이즈 perfect ≤ good ≤ bad (early/late 각각) (3) perfectMs - bad.early ≥ 0, perfectMs + bad.late ≤ durationMs (4) atMs < durationMs (5) repeat.min ≤ repeat.default ≤ repeat.max (6) ukemi.thresholds.perfect > ukemi.thresholds.good (7) 낙법 결과마다 uke 큐 1개 이상 (8) points.perfect ≥ good ≥ bad ≥ miss, points.perfect > 0",
   "type": "object",
   "required": ["schemaVersion", "id", "name", "totalDurationMs", "phases", "scoring", "ukemi"],
   "properties": {
@@ -181,9 +181,27 @@
             "default": { "type": "integer", "minimum": 1 }
           },
           "additionalProperties": false
+        },
+        "steps": {
+          "description": "회차별 타이밍 (개발자 모드 '+ 타이밍 추가'). 회차 i = steps[i % length] 가 durationMs / perfectMs / window / animations 를 덮어씀. onJudge · spacing · weight 는 진행부 공통값",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/progressionStep" }
         }
       },
       "unevaluatedProperties": false
+    },
+    "progressionStep": {
+      "type": "object",
+      "required": ["durationMs", "perfectMs", "window"],
+      "properties": {
+        "label": { "type": "string" },
+        "durationMs": { "type": "integer", "minimum": 1 },
+        "perfectMs": { "$ref": "#/$defs/ms" },
+        "window": { "$ref": "#/$defs/judgeWindow" },
+        "animations": { "$ref": "#/$defs/cueList", "minItems": 1, "description": "생략 시 진행부 공통 animations" }
+      },
+      "additionalProperties": false
     },
     "throwPhase": {
       "$ref": "#/$defs/phaseCommon",

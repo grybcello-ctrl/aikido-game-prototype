@@ -7,14 +7,16 @@ import { CHARACTER_TEXTURES, addCharacterSprite, preloadCharacterSprites } from 
 import { TimingEngine } from '../engine/TimingEngine';
 import type { EngineEvent, EngineResult, FailReason } from '../engine/types';
 import { validateTechnique } from '../engine/validate';
-import { bindOneButton } from '../input/oneButton';
+import { bindOneButton, isTypingTarget } from '../input/oneButton';
+import { loadPack, manifestWith, playableTechniques, preloadPackAssets, type SkillPack } from '../editor/skillPack';
 import { AnimRegistry } from '../render/AnimRegistry';
 import { AnimationController } from '../render/AnimationController';
 import { GameClock } from '../render/clock';
 import { FxLayer } from '../render/FxLayer';
+import { drawDojo } from '../render/dojo';
 import { Spacing } from '../render/Spacing';
 import type { AnimationManifest } from '../types/animations';
-import type { Grade, Phase, PhaseType, TechniqueData, UkemiGrade } from '../types/technique';
+import type { Grade, Phase, PhaseType, ResolvedTimeline, TechniqueData, UkemiGrade } from '../types/technique';
 import { PixelButton } from '../ui/PixelButton';
 import { FONT_FAMILY } from './fonts';
 import { DEFAULT_SPEED_INDEX, MODES, SPEEDS, type ModeId, type ModeRules } from './modes';
@@ -23,6 +25,29 @@ import { MODE_REGISTRY_KEY } from './TitleScene';
 type Ev<T extends EngineEvent['type']> = Extract<EngineEvent, { type: T }>;
 /** ready = 라운드 시작 전 준비 표시, between = 다음 라운드 대기 */
 type SceneState = 'ready' | 'playing' | 'between' | 'gameover';
+
+/**
+ * 개발자 모드 TEST: 편집 중인 기술 1개를 연습 모드 규칙으로 반복 재생.
+ * 폼 데이터(타이밍·판정·이미지)를 그대로 TimingEngine 에 주입하고, 엔진 이벤트를 에디터 로그로 돌려준다.
+ */
+export interface EmbeddedTest {
+  technique: TechniqueData;
+  /** 업로드 이미지 시퀀스·텍스처 */
+  pack: SkillPack;
+  /** 진행부 횟수 (생략 시 repeat.default) */
+  progressionCount?: number;
+  /** 엔진 이벤트 (판정·낙법·실패·종료) */
+  onEvent?: (e: EngineEvent, timeline: ResolvedTimeline) => void;
+  /** Stop 버튼 / Esc */
+  onExit?: () => void;
+}
+
+const TEST_MODE: ModeRules = {
+  ...MODES.practice,
+  label: 'TEST',
+  tagline: '개발자 모드 테스트 — Space / 화면 클릭 = 입력',
+  autoNextMs: 900,
+};
 
 /** 로드 시 검증 통과한 기술만 사용 (잘못된 파일은 경고 후 제외) */
 export const RAW_TECHNIQUES: unknown[] = [shomenuchiIriminage, katatedoriShihonage];
@@ -51,6 +76,8 @@ export const UI_STRINGS = [
   '아이키도 원버튼 — 마아이와 무스비', 'Space · Enter · 터치 = 시작     1 2 3 = 모드',
   'Space / 터치 = 입력', 'R 리셋 · H 메인 · T 배속 · 1 2 3 모드', '←→ 기술 · ↑↓ 진행 횟수',
   '터치 / Space 로 다시 시작', '·', '—', '×', '♥', '♡', '─', '›',
+  'PLAY MODE', 'DEVELOPER MODE', 'Space · Enter · 터치 = PLAY     D = DEVELOPER     1 2 3 = 모드',
+  'Space / 화면 클릭 = 입력   |   R 리셋 · T 배속 · ↑↓ 진행 횟수 · Esc 정지', 'Stop', TEST_MODE.label, TEST_MODE.tagline,
   ...Object.values(MODES).flatMap((m) => [m.label, m.tagline]),
 ];
 
@@ -110,14 +137,21 @@ export class GameScene extends Phaser.Scene {
   private overlayBg!: Phaser.GameObjects.Graphics;
   private speedBtn!: PixelButton;
   private cleanups: (() => void)[] = [];
+  private embedded: EmbeddedTest | null = null;
+  private pack: SkillPack | null = null;
 
   constructor() {
     super('game');
   }
 
-  init(data: { mode?: ModeId }): void {
+  init(data: { mode?: ModeId; embedded?: EmbeddedTest }): void {
+    this.embedded = data?.embedded ?? null;
+    // PLAY MODE 도 개발자 모드에서 저장한 스킬 팩으로 플레이 (없거나 유효한 기술이 없으면 기본 기술)
+    this.pack = this.embedded ? this.embedded.pack : loadPack();
     const id = data?.mode ?? (this.registry.get(MODE_REGISTRY_KEY) as ModeId | undefined) ?? 'flow';
-    this.mode = MODES[id] ?? MODES.flow;
+    this.mode = this.embedded ? TEST_MODE : MODES[id] ?? MODES.flow;
+    this.techIndex = this.embedded ? 0 : this.techIndex;
+    this.practiceN = this.embedded ? this.embedded.progressionCount ?? null : this.practiceN;
     this.leaving = false;
     this.techniques = [];
     this.dataErrors = [];
@@ -133,14 +167,15 @@ export class GameScene extends Phaser.Scene {
   /** 64x64 SVG 픽셀 아트 (player_idle / enemy_idle). 타이틀에서 이미 로드됐으면 건너뜀 */
   preload(): void {
     preloadCharacterSprites(this);
+    preloadPackAssets(this, this.pack); // 개발자 모드에서 업로드한 PNG/SVG
   }
 
   create(): void {
     this.clock = new GameClock(this.game.loop.now);
     this.loadTechniques();
-    this.seqs = new AnimRegistry(this, MANIFEST).build();
+    this.seqs = new AnimRegistry(this, manifestWith(MANIFEST, this.pack)).build();
     this.makeParticleTexture();
-    this.drawDojo();
+    drawDojo(this);
 
     // 캐릭터 = 픽셀 아트 스프라이트 (정수 배율 1, 내부 640x360 → 창에 맞춘 정수 줌). 우케는 좌우 반전
     this.tori = addCharacterSprite(this, STAGE_CENTER_X - 28, FLOOR_Y, CHARACTER_TEXTURES.player).setDepth(10);
@@ -171,7 +206,7 @@ export class GameScene extends Phaser.Scene {
     // 상단 UI 버튼: Reset / Home / Speed
     const btnY = 13;
     new PixelButton(this, 8 + 26, btnY, 'Reset', { width: 52, onClick: () => this.reset() }).setDepth(80);
-    new PixelButton(this, 8 + 52 + 6 + 26, btnY, 'Home', { width: 52, onClick: () => this.goHome() }).setDepth(80);
+    new PixelButton(this, 8 + 52 + 6 + 26, btnY, this.embedded ? 'Stop' : 'Home', { width: 52, onClick: () => this.goHome() }).setDepth(80);
     this.speedBtn = new PixelButton(this, 8 + 52 + 6 + 52 + 6 + 38, btnY, speedLabel(SPEEDS[this.speedIdx] ?? 1), {
       width: 76, onClick: () => this.cycleSpeed(),
     }).setDepth(80);
@@ -184,18 +219,28 @@ export class GameScene extends Phaser.Scene {
       this.onPress(p.event?.timeStamp ?? performance.now());
     });
 
-    const kb = this.input.keyboard;
-    kb?.on('keydown-ONE', () => this.switchMode('flow'));
-    kb?.on('keydown-TWO', () => this.switchMode('arcade'));
-    kb?.on('keydown-THREE', () => this.switchMode('practice'));
-    kb?.on('keydown-LEFT', () => this.practiceSelect(-1, 0));
-    kb?.on('keydown-RIGHT', () => this.practiceSelect(1, 0));
-    kb?.on('keydown-UP', () => this.practiceSelect(0, 1));
-    kb?.on('keydown-DOWN', () => this.practiceSelect(0, -1));
-    kb?.on('keydown-T', () => this.cycleSpeed());
-    kb?.on('keydown-R', () => this.reset());
-    kb?.on('keydown-H', () => this.goHome());
-    kb?.on('keydown-ESC', () => this.goHome());
+    // 단축키: DOM keydown (개발자 모드 폼에 글자를 입력하는 중이면 무시 — Phaser 키 이벤트는 대상 요소를 가리지 않음)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+      const test = !!this.embedded;
+      switch (e.code) {
+        case 'Digit1': case 'Numpad1': if (!test) this.switchMode('flow'); break;
+        case 'Digit2': case 'Numpad2': if (!test) this.switchMode('arcade'); break;
+        case 'Digit3': case 'Numpad3': if (!test) this.switchMode('practice'); break;
+        case 'ArrowLeft': if (!test) this.practiceSelect(-1, 0); break;
+        case 'ArrowRight': if (!test) this.practiceSelect(1, 0); break;
+        case 'ArrowUp': this.practiceSelect(0, 1); break;
+        case 'ArrowDown': this.practiceSelect(0, -1); break;
+        case 'KeyT': this.cycleSpeed(); break;
+        case 'KeyR': this.reset(); break;
+        case 'KeyH': if (!test) this.goHome(); break;
+        case 'Escape': this.goHome(); break;
+        default: return;
+      }
+      if (e.code.startsWith('Arrow')) e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    this.cleanups.push(() => window.removeEventListener('keydown', onKey));
 
     // 탭 비활성화 동안 게임 시계 정지. 씬 종료 시 전역 리스너 해제 (재진입 시 중복 방지)
     const onHidden = () => this.clock.pause(performance.now());
@@ -226,16 +271,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private loadTechniques(): void {
-    for (const raw of RAW_TECHNIQUES) {
+    if (this.embedded) {
+      const raw = this.embedded.technique;
       const issues = validateTechnique(raw);
-      if (issues.length) {
-        const id = (raw as { id?: string })?.id ?? '(unknown)';
-        this.dataErrors.push(`${id}: ${issues[0]}`);
-        console.error(`[GameScene] 기술 데이터 제외 ${id}`, issues);
-      } else {
-        this.techniques.push(raw as TechniqueData);
-      }
+      if (issues.length) this.dataErrors.push(...issues.map((m) => `${raw?.id ?? '(unknown)'}: ${m}`));
+      else this.techniques.push(raw);
+      return;
     }
+    const { techniques, errors } = playableTechniques(RAW_TECHNIQUES, this.pack);
+    this.techniques = techniques;
+    this.dataErrors = errors;
+    for (const e of errors) console.error(`[GameScene] 기술 데이터 제외 ${e}`);
   }
 
   private makeParticleTexture(): void {
@@ -244,22 +290,6 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0xffffff).fillRect(0, 0, 2, 2);
     g.generateTexture('px', 2, 2);
     g.destroy();
-  }
-
-  /** 도장 배경 (픽셀 도트) */
-  private drawDojo(): void {
-    const g = this.add.graphics().setDepth(0);
-    g.fillStyle(0x16141c).fillRect(0, 0, GAME_WIDTH, FLOOR_Y);
-    g.fillStyle(0x221e28).fillRect(0, 40, GAME_WIDTH, 6);
-    for (let x = 16; x < GAME_WIDTH; x += 96) g.fillStyle(0x2b2530).fillRect(x, 46, 8, FLOOR_Y - 46);
-    g.fillStyle(0x3a2f22).fillRect(GAME_WIDTH / 2 - 60, 70, 120, 44);
-    g.fillStyle(0x4a3c2b).fillRect(GAME_WIDTH / 2 - 56, 74, 112, 36);
-    g.fillStyle(0x6b5536).fillRect(GAME_WIDTH / 2 - 2, 80, 4, 24);
-    g.fillStyle(0x4b5a2c).fillRect(0, FLOOR_Y, GAME_WIDTH, GAME_HEIGHT - FLOOR_Y);
-    g.fillStyle(0x5d6d37);
-    for (let x = 0; x < GAME_WIDTH; x += 64) g.fillRect(x, FLOOR_Y, 1, GAME_HEIGHT - FLOOR_Y);
-    g.fillStyle(0x3c4823).fillRect(0, FLOOR_Y + 30, GAME_WIDTH, 1);
-    g.fillStyle(0x1b2010).fillRect(0, FLOOR_Y, GAME_WIDTH, 1);
   }
 
   // ───────────────────────────── time ─────────────────────────────
@@ -301,11 +331,17 @@ export class GameScene extends Phaser.Scene {
     this.beginRun();
   }
 
-  /** Home 버튼: 타이틀로 */
+  /** Home 버튼: 타이틀로 (개발자 모드 TEST 에서는 Stop → 에디터 대기 화면) */
   private goHome(): void {
     if (this.leaving) return;
     this.leaving = true;
     this.engine = null;
+    if (this.embedded) {
+      const exit = this.embedded.onExit;
+      if (exit) exit();
+      else this.scene.start('editor');
+      return;
+    }
     this.cameras.main.fadeOut(200, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('title'));
   }
@@ -375,7 +411,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private practiceSelect(dTech: number, dN: number): void {
-    if (this.mode.id !== 'practice' || this.leaving) return;
+    if (this.mode.id !== 'practice' || this.leaving || !this.techniques.length) return;
     const len = this.techniques.length;
     if (dTech) {
       this.techIndex = (this.techIndex + dTech + len) % len;
@@ -401,7 +437,15 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────────── engine events ─────────────────────────────
 
   private handle(events: EngineEvent[]): void {
+    const tl = this.engine?.timeline;
     for (const e of events) {
+      if (this.embedded?.onEvent && tl) {
+        try {
+          this.embedded.onEvent(e, tl);
+        } catch (err) {
+          console.error('[GameScene] onEvent', err);
+        }
+      }
       switch (e.type) {
         case 'cue':
           if (e.actor === 'tori') {
@@ -607,6 +651,10 @@ export class GameScene extends Phaser.Scene {
 
     const n = this.engine?.timeline.progressionCount ?? this.roundN;
     this.hudRight.setText(`${this.tech.name}\n진행 ×${n}   마아이 ${distance}px`);
+    if (this.embedded) {
+      this.help.setText('Space / 화면 클릭 = 입력   |   R 리셋 · T 배속 · ↑↓ 진행 횟수 · Esc 정지');
+      return;
+    }
     const extra = m.id === 'practice' ? '   |   ←→ 기술 · ↑↓ 진행 횟수' : '';
     this.help.setText(`Space / 터치 = 입력   |   R 리셋 · H 메인 · T 배속 · 1 2 3 모드${extra}`);
   }
@@ -632,6 +680,8 @@ export class GameScene extends Phaser.Scene {
       },
       warnings: [...this.seqs.warnings],
       dataErrors: [...this.dataErrors],
+      embedded: !!this.embedded,
+      fromPack: !this.embedded && !!this.pack?.techniques.length && this.techniques.some((t) => this.pack!.techniques.includes(t)),
     };
   }
 }
