@@ -62,10 +62,37 @@ const online = page({
 });
 writeFileSync(join(outDir, 'index.html'), online);
 
+/**
+ * 오프라인판 폰트: 번들에 쓰인 글자만 담은 Nanum Gothic Coding 서브셋(woff2)을 base64 로 인라인.
+ * (한글 시스템 폰트가 없는 환경에서도 글자가 깨지지 않게) 빌드 시 네트워크가 없으면 시스템 폰트로 폴백.
+ */
+const embedFontSubset = async () => {
+  const ascii = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join('');
+  const glyphs = [...new Set((ascii + appJs).match(/[^\x00-\x1f]/gu) ?? [])]
+    .filter((c) => c.codePointAt(0) < 0x10000 && (c.codePointAt(0) < 0x80 || /\p{L}|\p{N}|\p{P}|\p{S}/u.test(c)))
+    .join('');
+  const ua = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' };
+  const cssUrl = `https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&text=${encodeURIComponent(glyphs)}`;
+  try {
+    let css = await (await fetch(cssUrl, { headers: ua })).text();
+    const urls = [...new Set(css.match(/https:\/\/[^)]+/g) ?? [])];
+    if (!urls.length) throw new Error('폰트 URL 없음');
+    for (const u of urls) {
+      const buf = Buffer.from(await (await fetch(u, { headers: ua })).arrayBuffer());
+      css = css.replaceAll(u, `data:font/woff2;base64,${buf.toString('base64')}`);
+    }
+    return { css: `<style>\n${css}\n</style>`, glyphs: glyphs.length };
+  } catch (e) {
+    console.warn(`⚠ 폰트 서브셋 임베드 실패 (${e.message}) → 오프라인판은 시스템 한글 폰트 사용`);
+    return { css: '', glyphs: 0 };
+  }
+};
+
+const font = await embedFontSubset();
 const phaserJs = escapeScript(readFileSync(join(root, 'node_modules/phaser/dist/phaser.min.js'), 'utf8'));
-const offline = page({ head: '', phaser: `<script>\n${phaserJs}\n</script>` });
+const offline = page({ head: font.css, phaser: `<script>\n${phaserJs}\n</script>` });
 writeFileSync(join(outDir, 'index.offline.html'), offline);
 
 const kb = (s) => `${(Buffer.byteLength(s) / 1024).toFixed(1)} KB`;
 console.log(`✓ play/index.html          ${kb(online)} (phaser@${phaserVersion} + 웹폰트 CDN)`);
-console.log(`✓ play/index.offline.html  ${kb(offline)} (phaser@${phaserVersion} 인라인, 오프라인 실행)`);
+console.log(`✓ play/index.offline.html  ${kb(offline)} (phaser@${phaserVersion} 인라인${font.glyphs ? ` + 폰트 서브셋 ${font.glyphs}자` : ''}, 오프라인 실행)`);

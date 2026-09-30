@@ -7,7 +7,7 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 ## 실행
 
 - **바로 플레이 (인터넷 O)**: `play/index.html` 을 받아 더블클릭 — Phaser·한글 웹폰트만 CDN
-- **완전 오프라인**: `play/index.offline.html` — Phaser 까지 파일 하나에 포함 (폰트는 시스템 한글 폰트)
+- **완전 오프라인**: `play/index.offline.html` — Phaser + 사용 글자만 담은 한글 폰트 서브셋까지 파일 하나에 포함
 - 개발 서버: `npm install && npm run dev` → http://localhost:5173
 
 씬 흐름: **Title**(Touch to Start · 모드 선택) → **Game**(READY → 라운드 반복) → Home 버튼으로 Title
