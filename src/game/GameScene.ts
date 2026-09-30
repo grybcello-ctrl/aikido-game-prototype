@@ -404,7 +404,11 @@ export class GameScene extends Phaser.Scene {
     for (const e of events) {
       switch (e.type) {
         case 'cue':
-          if (e.actor === 'tori') this.toriAnim.play(e.key, e.atMs);
+          if (e.actor === 'tori') {
+            this.toriAnim.play(e.key, e.atMs);
+            // 입신으로 적의 사각에 파고든 순간엔 토리를 적 앞에 그림 (평소엔 우케가 앞)
+            this.tori.setDepth(this.tori.texture.key === CHARACTER_TEXTURES.playerIrimi ? 12 : 10);
+          }
           else if (e.actor === 'uke') this.ukeAnim.play(e.key, e.atMs);
           else {
             const c = this.contactAt(e.atMs);

@@ -97,7 +97,7 @@
             { "atMs": 0, "actor": "fx", "key": "fx.kuzushi_ring" }
           ],
           "spacing": {
-            "targetPx": 12,
+            "targetPx": 18,
             "anchor": "tori",
             "moveMs": 60
           }
