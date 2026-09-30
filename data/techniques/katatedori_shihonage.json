@@ -143,6 +143,8 @@
       "onJudge": {
         "perfect": {
           "cues": [
+            { "atMs": 0, "actor": "tori", "key": "tori.throw_perfect" },
+            { "atMs": 0, "actor": "uke", "key": "uke.ukemi_perfect_air" },
             { "atMs": 0, "actor": "fx", "key": "fx.impact_flash" }
           ]
         },

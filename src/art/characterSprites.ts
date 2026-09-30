@@ -9,6 +9,10 @@ export const CHARACTER_TEXTURES = {
   playerIrimi: 'player_irimi',
   /** 적 정면타 타격 키포즈 — Phase 1(적 공격) 에서 교체 */
   enemyShomenuchi: 'enemy_shomenuchi',
+  /** 던지기 피니시 (카케·잔심) — Phase 3 Perfect 에서 교체 */
+  playerThrow: 'player_throw',
+  /** 완벽한 하이폴 낙법 체공 — Phase 3 Perfect 에서 교체 */
+  enemyUkemiPerfect: 'enemy_ukemi_perfect',
 } as const satisfies Record<string, SpriteKey>;
 export type CharacterTexture = SpriteKey;
 
