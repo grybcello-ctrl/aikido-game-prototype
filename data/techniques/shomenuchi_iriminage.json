@@ -9,11 +9,11 @@
     "lockoutMs": 150
   },
   "spacing": {
-    "startPx": 96,
+    "startPx": 56,
     "moveMs": 120,
     "slackPx": {
-      "good": 6,
-      "bad": 14
+      "good": 4,
+      "bad": 10
     }
   },
   "phases": [
@@ -64,7 +64,7 @@
         }
       },
       "spacing": {
-        "targetPx": 44,
+        "targetPx": 40,
         "anchor": "tori"
       }
     },
@@ -110,7 +110,7 @@
         }
       },
       "spacing": {
-        "deltaPx": -4,
+        "deltaPx": -3,
         "anchor": "center"
       }
     },
@@ -155,7 +155,7 @@
         }
       },
       "spacing": {
-        "targetPx": 28,
+        "targetPx": 22,
         "anchor": "tori",
         "moveMs": 90
       }

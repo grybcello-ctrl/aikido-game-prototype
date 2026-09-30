@@ -61,11 +61,13 @@ const POSES: Record<Exclude<PoseHint, `fx_${string}`>, [Joint, Joint]> = {
 };
 
 export interface Palette { gi: string; giShade: string; hakama: string; belt: string; skin: string; hair: string; outline: string }
+/** 토리(플레이어) = 파랑 */
 export const TORI_PALETTE: Palette = {
-  gi: '#f2efe6', giShade: '#c9c3b3', hakama: '#1f2b4d', belt: '#1f2b4d', skin: '#e0b48a', hair: '#2a1d15', outline: '#0b0b10',
+  gi: '#4f8ef7', giShade: '#2358c9', hakama: '#1b2f73', belt: '#0e1a45', skin: '#e0b48a', hair: '#1a1410', outline: '#07070c',
 };
+/** 우케(상대) = 빨강 */
 export const UKE_PALETTE: Palette = {
-  gi: '#e6e1d6', giShade: '#b9b2a2', hakama: '#3b1d1d', belt: '#b3282d', skin: '#d9a57a', hair: '#15110f', outline: '#0b0b10',
+  gi: '#ef4b4b', giShade: '#b82424', hakama: '#6b1717', belt: '#3a0909', skin: '#d9a57a', hair: '#15110f', outline: '#07070c',
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
