@@ -49,11 +49,13 @@
   });
   var installIntegerZoom = (game) => {
     const apply = () => {
+      if (!game.canvas) return;
       const ratio = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
       game.scale.setZoom(ratio >= 1 ? Math.floor(ratio) : ratio);
     };
     window.addEventListener("resize", apply);
-    apply();
+    if (game.isBooted && game.canvas) apply();
+    else game.events.once(phaser_global_default.Core.Events.READY, apply);
     return () => window.removeEventListener("resize", apply);
   };
 
@@ -2084,7 +2086,7 @@
       g.lineStyle(2, 9075290).strokeRect(px + 1, py + 1, pw - 2, ph - 2);
       const floor = py + 150;
       this.add.sprite(GAME_WIDTH / 2 - 26, floor, "ph:tori.throw_cut", 3).setOrigin(0.5, 1).setScale(2);
-      this.add.sprite(GAME_WIDTH / 2 + 30, floor, "ph:uke.thrown", 2).setOrigin(0.5, 1).setScale(2).setFlipX(true);
+      this.add.sprite(GAME_WIDTH / 2 + 30, floor, "ph:uke.lifted", 3).setOrigin(0.5, 1).setScale(2).setFlipX(true);
     }
   };
 

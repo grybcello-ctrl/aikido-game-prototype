@@ -31,10 +31,13 @@ export const createGameConfig = (scenes: Phaser.Types.Scenes.SceneType[], parent
 /** 창 크기에 맞춰 정수 배율 줌. 640x360 보다 작은 화면만 비정수 축소 */
 export const installIntegerZoom = (game: Phaser.Game): (() => void) => {
   const apply = () => {
+    if (!game.canvas) return; // 부팅 전(캔버스 생성 전)에는 적용 불가
     const ratio = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
     game.scale.setZoom(ratio >= 1 ? Math.floor(ratio) : ratio);
   };
   window.addEventListener('resize', apply);
-  apply();
+  // Phaser 는 DOM 준비 후 비동기로 부팅 → READY 이후에 첫 적용 (이미 부팅됐으면 즉시)
+  if (game.isBooted && game.canvas) apply();
+  else game.events.once(Phaser.Core.Events.READY, apply);
   return () => window.removeEventListener('resize', apply);
 };

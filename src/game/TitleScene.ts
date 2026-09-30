@@ -125,6 +125,6 @@ export class TitleScene extends Phaser.Scene {
     // 두 캐릭터 (근접) — 64px 프레임을 ×2 정수 확대
     const floor = py + 150;
     this.add.sprite(GAME_WIDTH / 2 - 26, floor, 'ph:tori.throw_cut', 3).setOrigin(0.5, 1).setScale(2);
-    this.add.sprite(GAME_WIDTH / 2 + 30, floor, 'ph:uke.thrown', 2).setOrigin(0.5, 1).setScale(2).setFlipX(true);
+    this.add.sprite(GAME_WIDTH / 2 + 30, floor, 'ph:uke.lifted', 3).setOrigin(0.5, 1).setScale(2).setFlipX(true);
   }
 }
