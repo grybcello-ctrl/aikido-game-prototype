@@ -41,7 +41,7 @@ const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 export const UI_STRINGS = [
   '수련', '게임', '연습', 'Space / 터치', '로 시작', '다음 기술', '목숨', '점수', '콤보', '진행', '배속', '기술',
   '타이밍을 놓쳤다', '흐름이 끊겼다', '입력 없음', '중단', '게임 오버', '다시 시작', '낙법',
-  '1 수련 · 2 게임 · 3 연습', '←→ 기술 · ↑↓ 진행 횟수 · T 배속', '데이터 오류', '·', '—', '×', '♥', '♡', '─',
+  '라운드', '1 수련 · 2 게임 · 3 연습', '←→ 기술 · ↑↓ 진행 횟수 · T 배속', '데이터 오류', '·', '—', '×', '♥', '♡', '─',
   ...Object.values(MODES).flatMap((m) => [m.label, m.tagline]),
 ];
 
@@ -483,10 +483,12 @@ export class GameScene extends Phaser.Scene {
     const m = this.mode;
     const parts = [`[${m.label}]`];
     if (m.lives !== null) parts.push(`목숨 ${'♥'.repeat(Math.max(0, r.lives))}${'♡'.repeat(Math.max(0, (m.lives ?? 0) - r.lives))}`);
-    if (m.id === 'arcade') parts.push(`점수 ${r.score}`, `콤보 ${r.combo}`);
-    if (m.speeds.length > 1) parts.push(`배속 ×${m.speeds[this.speedIdx]}`);
     const live = this.engine?.getState();
-    if (live && this.state === 'playing') parts.push(`${live.score.raw} / ${live.score.max}`);
+    const playing = !!live && this.state === 'playing';
+    // 누적 점수 = 끝난 라운드 합 + 진행 중 라운드 점수 (라운드 도중에도 실시간 반영)
+    if (m.id === 'arcade') parts.push(`점수 ${r.score + (playing ? live.score.raw : 0)}`, `콤보 ${r.combo}`);
+    if (m.speeds.length > 1) parts.push(`배속 ×${m.speeds[this.speedIdx]}`);
+    if (playing) parts.push(`라운드 ${live.score.raw} / ${live.score.max}`);
     this.hudLeft.setText(parts.join('   '));
 
     const n = this.engine?.timeline.progressionCount ?? this.pickN(this.tech);
