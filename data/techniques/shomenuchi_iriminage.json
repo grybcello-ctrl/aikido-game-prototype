@@ -93,8 +93,14 @@
       "onJudge": {
         "perfect": {
           "cues": [
+            { "atMs": 0, "actor": "tori", "key": "tori.irimi_perfect" },
             { "atMs": 0, "actor": "fx", "key": "fx.kuzushi_ring" }
-          ]
+          ],
+          "spacing": {
+            "targetPx": 12,
+            "anchor": "tori",
+            "moveMs": 60
+          }
         },
         "bad": {
           "replaceRemaining": true,

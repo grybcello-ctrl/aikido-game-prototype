@@ -95,7 +95,8 @@
           "default": false,
           "description": "true: 이 반응에 등장하는 actor 의 남은 기본 큐(판정 이후 예정된 animations)를 취소"
         },
-        "cues": { "$ref": "#/$defs/cueList", "minItems": 1 }
+        "cues": { "$ref": "#/$defs/cueList", "minItems": 1 },
+        "spacing": { "$ref": "#/$defs/spacingMove", "description": "이 등급일 때 페이즈 spacing 대신 적용할 거리 이동 (예: Perfect 입신 → 적의 사각으로)" }
       },
       "additionalProperties": false
     },

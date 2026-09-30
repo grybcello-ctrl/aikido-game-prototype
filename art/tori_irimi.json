@@ -1,0 +1,136 @@
+{
+  "$comment": "64x64 픽셀 아트 원본 (입신·전환 키포즈, 오른쪽을 봄). rows 의 각 글자 = palette 키, \".\" = 투명. 수정 후 npm run build:sprites",
+  "id": "tori_irimi",
+  "name": "토리 — 입신·전환 (irimi / tenkan) 파고드는 순간",
+  "size": 64,
+  "footY": 62,
+  "palette": {
+    "K": {
+      "color": "#1c1b22",
+      "label": "외곽선 (짙은 회흑)"
+    },
+    "H": {
+      "color": "#eceef1",
+      "label": "은발 하이라이트"
+    },
+    "h": {
+      "color": "#bfc4cc",
+      "label": "은발 중간"
+    },
+    "j": {
+      "color": "#8a909b",
+      "label": "은발 그림자"
+    },
+    "S": {
+      "color": "#f1c7a3",
+      "label": "피부"
+    },
+    "s": {
+      "color": "#d49f7a",
+      "label": "피부 그림자"
+    },
+    "t": {
+      "color": "#a8735a",
+      "label": "피부 깊은 그림자 (귀·입)"
+    },
+    "E": {
+      "color": "#2a1f1f",
+      "label": "눈"
+    },
+    "W": {
+      "color": "#f7f5f0",
+      "label": "흰 도복"
+    },
+    "w": {
+      "color": "#d9d4c9",
+      "label": "도복 그림자"
+    },
+    "v": {
+      "color": "#aba494",
+      "label": "도복 깊은 그림자 (깃·소매)"
+    },
+    "B": {
+      "color": "#2d2d35",
+      "label": "검은 하카마"
+    },
+    "b": {
+      "color": "#4c4c58",
+      "label": "하카마 주름 하이라이트"
+    },
+    "n": {
+      "color": "#17171c",
+      "label": "하카마 깊은 그림자"
+    }
+  },
+  "outputs": [
+    {
+      "key": "player_irimi"
+    }
+  ],
+  "rows": [
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "........................................................KKKKK...",
+    ".......................................................KKSSSKK..",
+    "......................................................KKSSSSSK..",
+    "......................................................KSSSSSSK..",
+    "....................................................KKKKSSSSKK..",
+    "....................................................KSSSKSsKK...",
+    ".....................................KKKKKK........KKSSSsKKK....",
+    ".................................KKKKKHHHHKKKK....KKWKSSsK......",
+    "................................KKHHHHHHHHHHHKK..KKWWWKKKK......",
+    "...............................KKHHHHHHHHHHHHHKK.KWWwWwWK.......",
+    "..............................KKHHHHHHHHHHHHHHHKKKWwWWWKK.......",
+    "..............................KHHHHHHhhHHHHKKKKKKWWwWWWK........",
+    ".............................KKHHhhhhHHHHHKSSSSKKWwWWWKK........",
+    "............................KKHhhHHHHHHHHKSSSSSKWwWWWWK.........",
+    "...........................KKHHHHHHhhHHHKSSSjjSSKwWWWKK.........",
+    ".........................KKKHHHHhhhHHHHHKSSSEESKwWWWWK..........",
+    ".........................KHHhhhhhhHHHHHKSSSSSSSKWWWWWK..........",
+    ".........................KjhhhhhhhhhhhhKstSSSSKsWWWWKK..........",
+    ".........................KKKjjjhhhhhhhKSSsSSSKWWWWWwK...........",
+    ".........................KKhjjjjjhhhhKSSSSSSSKtWWWWwK...........",
+    ".........................KhhhhKKKjhhKSSSSSSSKWWWWWwKK...........",
+    ".........................KKKKKK.KKKKSSSsssSKWWWWWWwK............",
+    "...............................KKKWWWWSSSSKWWWWWWwwK............",
+    "..............................KKWWWWWWWWWKWSsWWWwwKK............",
+    ".............................KKwwWWWWWWWWKWvsWWwwwK.............",
+    "............................KKwwWWWWWWWWWKSsWWwwwKK.............",
+    "............................KwwwWWWWWWWWWKvWwwwwwK..............",
+    "...........................KKwwwWWWWWWWWWKwwwwvvKK..............",
+    "..........................KKwwwWWWWWWWWWWKKKvvvKK...............",
+    "..........................KwwwwWWWWWWWWWvWWWKKKK................",
+    "..........................KwwwWWWWWWWWWvWWWKwKKKK...............",
+    ".........................KKwwwWWWWWWWWWvWWKwwwwwKKKK............",
+    ".........................KwwwwWWWWWWWWvWWwKwwwwwwwwKKKKKKK......",
+    ".........................KwwwwWWWWWWWvWwwKwwwwwwwwwwKSSSSKK.....",
+    ".........................KvwwwWWWWWWWvwwwKvwwwwwwwwwKSSSSSKK....",
+    "........................KKvvwWWWWWWWvKKKKvvvvvvvvvvvKSSSSSSK....",
+    "........................KvvvwKKKKKKKKBnnnnvvvvvvvvvvvKSSssKK....",
+    "......................KKKKKKKBnnnnnnnnbbbbKKKvvvvvKKKSssKKK.....",
+    "....KKKK........KKKKKKKBBBnnnnbbbbbbbbbnBBBBBKKKKKK.KKKKK.......",
+    "...KKnnKK....KKKKBBBBBBBBBbbbbBBBBBBBBBbnBBBBBKK................",
+    "...KBBnnK...KKnBBBBBBBBBBBBBBBBKBBBbnBBBbnBBBBBKK...............",
+    "..KKBBBnKK.KKnBBBBBBBBBBBBBbbbBKBBBBbnBBbnBBBBBBKK..............",
+    "..KBBBBnnK.KnBBBBBBBBBBbbbbnnnbKbBBBbnBBBbnBBBBBBKK.............",
+    "..KBBBBBnKKKBBBBBBbbbbbnnnnBbbbnKBBBBbnBBBbnBBBBBbKK............",
+    "..KBBBBBBnKKBbbbbbBnnnnBBBbbBbnbKBBBBBbnBBBbnBBBBBbKK...........",
+    "..KBBBBBBbnKKBnnnnnBBBBBbbBBbnBbBKBBBBbnBBBBbnBBBBBbK...........",
+    "..KKBBbbbBnnKnBBBBBBBBbbBBBBbBBbBnKKBBBbnBBBBbnBBBBbK...........",
+    "...KBBBnnnBBBBBBBBBBBbBBBBBbnBbBBBnnKBBBbnBBBbnBBBBBKK..........",
+    "...KBBBBBBBBBBBBBBBbbBBBBBbnBBbBBBBnKKKBbnBBBBbnBBBBBK..........",
+    "...KKBBBBBBBBBBBBbbBBBBBBbnBBBbBBBBKK.KKnbnBBBBbnBBBBK..........",
+    "....KKBBBBBBBBBbbBBBBBBBbnBBBbBBBBBK...KKnbnBBBBbnBBBKK.........",
+    ".....KKBBBBBBbbBBBBBBBBbnBBBBbBBBBBK....KKnnBBBBBbnBBBK.........",
+    "......KKBBBbbBBBBBBBBBbnBBBBBbBBBBBK.....KKnnBBBBbnBBBK.........",
+    ".......KKBbBBBBBBBBBBbnBBBBBbBBBBBKK......KKbnBBBBbnBBKK........",
+    "........KKBBBBBBBBBBBbnBBBBBbBBBBBK........KKnBBBBBbnBBKK.......",
+    ".........KKKBBBBBBBBbnBBBBBBbBBBBKK.........KbnBBBBSSSSSKK......",
+    "...........KKKKBBBBbnBBBBBBbBBBKKK..........KKBSSSSSSSSSSKK.....",
+    "..............KKKKbnssssssssssKK.............KSsssssssssssK.....",
+    ".................KKKKKKKKKKKKKK..............KKKKKKKKKKKKKK.....",
+    "................................................................",
+    "................................................................"
+  ]
+}

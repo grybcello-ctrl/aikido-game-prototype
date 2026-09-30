@@ -218,6 +218,11 @@ export const validateTechnique = (input: unknown): string[] => {
     moves.push({ path, move: v });
   };
   if (Array.isArray(t.phases)) t.phases.forEach((ph, i) => isObj(ph) && checkMove(ph.spacing, `phases[${i}].spacing`));
+  if (Array.isArray(t.phases))
+    t.phases.forEach((ph, i) => {
+      if (!isObj(ph) || !isObj(ph.onJudge)) return;
+      for (const [g, r] of Object.entries(ph.onJudge)) if (isObj(r)) checkMove(r.spacing, `phases[${i}].onJudge.${g}.spacing`);
+    });
   if (isObj(t.ukemi) && isObj(t.ukemi.results))
     for (const g of UKEMI) {
       const r = t.ukemi.results[g];

@@ -62,6 +62,8 @@ export interface JudgeReaction {
   replaceRemaining?: boolean;
   /** 1개 이상 */
   cues: AnimationCue[];
+  /** 이 등급일 때 페이즈 spacing 대신 적용할 거리 이동 (예: Perfect 입신 → 적의 사각으로 파고듦) */
+  spacing?: SpacingMove;
 }
 
 export type JudgeReactions = Partial<Record<Grade, JudgeReaction>>;
