@@ -2711,6 +2711,12 @@
       /** 하이폴 비행 오프셋 (Spacing 위치에 더함). Tween 이 값을 바꾸고 update() 가 적용 */
       __publicField(this, "flight", { x: 0, y: 0 });
       __publicField(this, "flightTween", null);
+      /**
+       * 피니시 포즈 유지: Phase 3 Perfect 뒤 낙법 시작 큐(source 'ukemi')가 던지기·하이폴 키포즈를 덮지 않게 보류.
+       * tori = 라운드 끝까지 잔심(nage_throw) 유지, uke = 비행이 끝날 때까지 보류 후 마지막 큐 재생
+       */
+      __publicField(this, "hold", { tori: false, uke: false });
+      __publicField(this, "pendingUke", null);
       __publicField(this, "pack", null);
     }
     init(data) {
@@ -3008,6 +3014,10 @@
         }
         switch (e.type) {
           case "cue":
+            if (e.source === "ukemi" && e.actor !== "fx" && this.hold[e.actor]) {
+              if (e.actor === "uke") this.pendingUke = { key: e.key };
+              break;
+            }
             if (e.actor === "tori") {
               this.toriAnim.play(e.key, e.atMs);
               this.tori.setDepth(FRONT_OF_UKE_TEXTURES.has(this.tori.texture.key) ? 12 : 10);
@@ -3086,14 +3096,27 @@
       if (this.mode.finishShake) this.cameras.main.shake(200, 0.02);
       this.launchHighfall(e, hitstopMs);
     }
+    /** 비행 끝: 보류했던 우케 낙법 큐를 지금 시각으로 재생 (arc 착지 → 낙법 연출) */
+    releaseUke() {
+      this.hold.uke = false;
+      const p = this.pendingUke;
+      this.pendingUke = null;
+      if (p) this.ukeAnim.play(p.key, this.local());
+    }
     /**
      * 하이폴 비행 Tween. tweens.timeScale = 배속이므로 duration 은 가상 ms 그대로,
      * 히트스톱(실시간)만큼은 delay 로 기다린다 (delay 도 timeScale 을 받으므로 × 배속).
      */
     launchHighfall(e, hitstopMs) {
       this.stopFlight();
-      const kind = this.mode.finishFlight;
-      if (kind === "none") return;
+      this.hold = { tori: true, uke: true };
+      const ratio = this.engine?.getState().score.ratio ?? 0;
+      const sure = ratio >= this.tech.ukemi.thresholds.perfect;
+      const kind = this.mode.finishFlight === "offscreen" && !sure ? "arc" : this.mode.finishFlight;
+      if (kind === "none") {
+        this.releaseUke();
+        return;
+      }
       const delay = hitstopMs * (SPEEDS[this.speedIdx] ?? 1);
       const f = this.flight;
       if (kind === "offscreen") {
@@ -3130,10 +3153,13 @@
         },
         onComplete: () => {
           f.y = 0;
+          this.releaseUke();
         }
       });
     }
     stopFlight() {
+      this.hold = { tori: false, uke: false };
+      this.pendingUke = null;
       this.flightTween?.remove();
       this.flightTween = null;
       this.flight.x = 0;

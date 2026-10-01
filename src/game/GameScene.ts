@@ -146,6 +146,12 @@ export class GameScene extends Phaser.Scene {
   /** 하이폴 비행 오프셋 (Spacing 위치에 더함). Tween 이 값을 바꾸고 update() 가 적용 */
   private flight = { x: 0, y: 0 };
   private flightTween: Phaser.Tweens.Tween | null = null;
+  /**
+   * 피니시 포즈 유지: Phase 3 Perfect 뒤 낙법 시작 큐(source 'ukemi')가 던지기·하이폴 키포즈를 덮지 않게 보류.
+   * tori = 라운드 끝까지 잔심(nage_throw) 유지, uke = 비행이 끝날 때까지 보류 후 마지막 큐 재생
+   */
+  private hold = { tori: false, uke: false };
+  private pendingUke: { key: string } | null = null;
   private pack: SkillPack | null = null;
 
   constructor() {
@@ -457,6 +463,10 @@ export class GameScene extends Phaser.Scene {
       }
       switch (e.type) {
         case 'cue':
+          if (e.source === 'ukemi' && e.actor !== 'fx' && this.hold[e.actor]) {
+            if (e.actor === 'uke') this.pendingUke = { key: e.key };
+            break;
+          }
           if (e.actor === 'tori') {
             this.toriAnim.play(e.key, e.atMs);
             // 입신으로 적의 사각에 파고든 순간엔 토리를 적 앞에 그림 (평소엔 우케가 앞)
@@ -547,14 +557,29 @@ export class GameScene extends Phaser.Scene {
     this.launchHighfall(e, hitstopMs);
   }
 
+  /** 비행 끝: 보류했던 우케 낙법 큐를 지금 시각으로 재생 (arc 착지 → 낙법 연출) */
+  private releaseUke(): void {
+    this.hold.uke = false;
+    const p = this.pendingUke;
+    this.pendingUke = null;
+    if (p) this.ukeAnim.play(p.key, this.local());
+  }
+
   /**
    * 하이폴 비행 Tween. tweens.timeScale = 배속이므로 duration 은 가상 ms 그대로,
    * 히트스톱(실시간)만큼은 delay 로 기다린다 (delay 도 timeScale 을 받으므로 × 배속).
    */
   private launchHighfall(e: Ev<'judge'>, hitstopMs: number): void {
     this.stopFlight();
-    const kind = this.mode.finishFlight;
-    if (kind === 'none') return;
+    this.hold = { tori: true, uke: true };
+    // 화면 밖 비행은 낙법 Perfect 가 확정일 때만 (던지기가 마지막 판정 → 지금 점수 비율이 최종). 아니면 포물선 착지
+    const ratio = this.engine?.getState().score.ratio ?? 0;
+    const sure = ratio >= this.tech.ukemi.thresholds.perfect;
+    const kind = this.mode.finishFlight === 'offscreen' && !sure ? 'arc' : this.mode.finishFlight;
+    if (kind === 'none') {
+      this.releaseUke();
+      return;
+    }
     const delay = hitstopMs * (SPEEDS[this.speedIdx] ?? 1);
     const f = this.flight;
     if (kind === 'offscreen') {
@@ -581,11 +606,16 @@ export class GameScene extends Phaser.Scene {
         f.x = 0;
         f.y = Math.round(-FLIGHT.arc.height * 4 * t * (1 - t));
       },
-      onComplete: () => { f.y = 0; },
+      onComplete: () => {
+        f.y = 0;
+        this.releaseUke();
+      },
     });
   }
 
   private stopFlight(): void {
+    this.hold = { tori: false, uke: false };
+    this.pendingUke = null;
     this.flightTween?.remove();
     this.flightTween = null;
     this.flight.x = 0;
