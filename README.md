@@ -74,6 +74,16 @@ JSON 에 시간(ms)과 애니메이션 시퀀스 Key 만 넣으면, 엔진 수�
 - 사용: 대기·잔심 포즈(`animations.json` 의 `"image"`)는 이 스프라이트, 동작 포즈는 같은 팔레트의 절차적 플레이스홀더 (적은 붉은 링 포함)
 - 선명도: 캐릭터 배율은 정수만 허용(`addCharacterSprite`), `pixelArt`·`roundPixels`, 창에 맞춘 정수 줌
 
+키포즈 (Dynamic Aikido) — 판정에 따라 `setTexture` 로 즉시 교체:
+
+| 텍스처 | 시퀀스 Key | 언제 |
+|---|---|---|
+| `uke_attack` | `uke.shomen_strike` | Phase 1 정면타 순간 (도입부 450ms) |
+| `nage_irimi` | `tori.irimi_perfect` | Phase 2 Perfect — 사각으로 입신, 토리를 우케 앞에 그림 |
+| `nage_throw` · `uke_highfall` | `tori.throw_perfect` · `uke.ukemi_perfect_air` | Phase 3 Perfect — 셰이크(200, 0.02) + 하이폴 비행 Tween (게임 = 화면 밖으로, 수련·연습 = 포물선 착지 후 낙법) |
+
+이전 키포즈(`player_irimi` · `enemy_shomenuchi` · `player_throw` · `enemy_ukemi_perfect`)는 `*_classic` Key 로 남아 개발자 모드에서 고를 수 있다.
+
 ## 설계 요점
 
 - **Pixel-perfect**: 내부 640×360, `pixelArt`·`roundPixels`, `Scale.NONE` + 창 크기에 맞춘 **정수 배율 줌** (비정수 확대 번짐 없음)
