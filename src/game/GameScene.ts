@@ -67,8 +67,8 @@ const CHEST_Y = FLOOR_Y - 38;
 /** 하이폴 비행 (가상 ms · px). 오른쪽(+x) = 토리 반대쪽 */
 const FLIGHT = {
   offscreen: { ms: 620, dx: 400, rise: 150, fall: 60 },
-  /** drift = 토리 머리 위로 겹치지 않게 앞으로 밀려나는 거리. 착지 후 낙법 이동(Spacing) 동안 0 으로 되돌림 */
-  arc: { minMs: 220, height: 40, drift: 26, handoffMs: 360 },
+  /** drift = 토리 머리 위로 겹치지 않게 토리 반대쪽으로 밀려나는 거리 (라운드 끝까지 유지, 다음 라운드에서 0) */
+  arc: { minMs: 220, height: 40, drift: 26 },
 } as const;
 /** 라운드 시작 전 READY 표시 시간 (가상 ms) */
 const READY_MS = 800;
@@ -609,12 +609,7 @@ export class GameScene extends Phaser.Scene {
       },
       onComplete: () => {
         f.y = 0;
-        this.releaseUke();
-        // 낙법 거리 이동(우케가 굴러 나감)과 겹치며 밀려난 거리를 서서히 반납 → 위치가 튀지 않음
-        this.flightTween = this.tweens.addCounter({
-          from: FLIGHT.arc.drift, to: 0, duration: FLIGHT.arc.handoffMs, ease: 'Sine.easeInOut',
-          onUpdate: (tw) => { f.x = Math.round(tw.getValue() ?? 0); },
-        });
+        this.releaseUke(); // 착지 → 낙법 연출 (Spacing 의 낙법 이동은 그대로 더해짐)
       },
     });
   }

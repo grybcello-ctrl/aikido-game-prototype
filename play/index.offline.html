@@ -2639,8 +2639,8 @@
   var CHEST_Y = FLOOR_Y - 38;
   var FLIGHT = {
     offscreen: { ms: 620, dx: 400, rise: 150, fall: 60 },
-    /** drift = 토리 머리 위로 겹치지 않게 앞으로 밀려나는 거리. 착지 후 낙법 이동(Spacing) 동안 0 으로 되돌림 */
-    arc: { minMs: 220, height: 40, drift: 26, handoffMs: 360 }
+    /** drift = 토리 머리 위로 겹치지 않게 토리 반대쪽으로 밀려나는 거리 (라운드 끝까지 유지, 다음 라운드에서 0) */
+    arc: { minMs: 220, height: 40, drift: 26 }
   };
   var READY_MS = 800;
   var hex = (c) => `#${c.toString(16).padStart(6, "0")}`;
@@ -3172,15 +3172,6 @@
         onComplete: () => {
           f.y = 0;
           this.releaseUke();
-          this.flightTween = this.tweens.addCounter({
-            from: FLIGHT.arc.drift,
-            to: 0,
-            duration: FLIGHT.arc.handoffMs,
-            ease: "Sine.easeInOut",
-            onUpdate: (tw) => {
-              f.x = Math.round(tw.getValue() ?? 0);
-            }
-          });
         }
       });
     }
