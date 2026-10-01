@@ -32,8 +32,8 @@ const imageKeys = new Set<string>(Object.keys(SPRITES));
 for (const [k, def] of Object.entries(manifest.sequences ?? {})) {
   if (!def.image) continue;
   if (!imageKeys.has(def.image)) fail(`${k}.image '${def.image}' 는 로드되지 않는 텍스처 (가능: ${[...imageKeys].join(', ')})`);
-  if (def.image.startsWith('enemy_') && !k.startsWith('uke.')) fail(`${k}: 적 텍스처(${def.image})는 uke.* 시퀀스에만`);
-  if (def.image.startsWith('player_') && !k.startsWith('tori.')) fail(`${k}: 플레이어 텍스처(${def.image})는 tori.* 시퀀스에만`);
+  if (/^(enemy|uke)_/.test(def.image) && !k.startsWith('uke.')) fail(`${k}: 적 텍스처(${def.image})는 uke.* 시퀀스에만`);
+  if (/^(player|nage)_/.test(def.image) && !k.startsWith('tori.')) fail(`${k}: 플레이어 텍스처(${def.image})는 tori.* 시퀀스에만`);
 }
 const usedKeys = new Set<string>(['tori.kamae', 'uke.kamae']); // 씬 대기 포즈
 console.log(`  시퀀스 ${seqKeys.size}개`);

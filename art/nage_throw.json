@@ -1,0 +1,144 @@
+{
+  "$comment": "64x64 픽셀 아트 원본. rows 의 각 글자 = palette 키, \".\" = 투명. 수정 후 npm run build:sprites",
+  "id": "nage_throw",
+  "name": "나게 — 중심 낙하 던지기 · 잔심 (Dynamic)",
+  "size": 64,
+  "footY": 62,
+  "palette": {
+    "K": {
+      "color": "#1c1b22",
+      "label": "외곽선 (짙은 회흑)"
+    },
+    "H": {
+      "color": "#eceef1",
+      "label": "은발 하이라이트"
+    },
+    "h": {
+      "color": "#bfc4cc",
+      "label": "은발 중간"
+    },
+    "j": {
+      "color": "#8a909b",
+      "label": "은발 그림자"
+    },
+    "S": {
+      "color": "#f1c7a3",
+      "label": "피부"
+    },
+    "s": {
+      "color": "#d49f7a",
+      "label": "피부 그림자"
+    },
+    "t": {
+      "color": "#a8735a",
+      "label": "피부 깊은 그림자 (귀·입)"
+    },
+    "E": {
+      "color": "#2a1f1f",
+      "label": "눈"
+    },
+    "W": {
+      "color": "#f7f5f0",
+      "label": "흰 도복"
+    },
+    "w": {
+      "color": "#d9d4c9",
+      "label": "도복 그림자"
+    },
+    "v": {
+      "color": "#aba494",
+      "label": "도복 깊은 그림자 (깃·소매)"
+    },
+    "B": {
+      "color": "#2d2d35",
+      "label": "검은 하카마"
+    },
+    "b": {
+      "color": "#4c4c58",
+      "label": "하카마 주름 하이라이트"
+    },
+    "n": {
+      "color": "#17171c",
+      "label": "하카마 깊은 그림자"
+    },
+    "Z": {
+      "color": "#d9c9a3",
+      "label": "조리 바닥 (짚)"
+    },
+    "z": {
+      "color": "#a8946b",
+      "label": "조리 바닥 그림자"
+    }
+  },
+  "outputs": [
+    {
+      "key": "nage_throw"
+    }
+  ],
+  "rows": [
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "............................KKKKKKKK............................",
+    "...........................KKhHHHHhKK...........................",
+    "..........................KKjhHHHHHhKK..........................",
+    "..........................KjhhHHHHHHhK..........................",
+    "..........................KjhhhHHhhHSKK.........................",
+    "..........................KjjhhSSSSSSSK.........................",
+    "..........................KjjhsSjjSSjSK.........................",
+    "..........................KjjtsSESSSESKK........................",
+    "..........................KKjtsSSSSSSSsK........................",
+    "...........................KjssSSSSSSsKK........................",
+    "...........................KKsSSSSttsKK.........................",
+    "............................KssSSSSsKK..........................",
+    "............................KKssSSsKK...........................",
+    ".........................KKKKKsSSsKKKKKKKK......................",
+    "........................KKWWWvSSSSvWWWwwWKKK....................",
+    "........................KwWWWWvSSvWWWwwwwWWKK...................",
+    "........................KwWWWWWvvWWWwwwwwwwWKKK.................",
+    ".......................KKwWWWWWWvwWWwwwwwwwwWWKK................",
+    ".......................KwwWWWWWWWvwWwwwwwwwwwWWKK...............",
+    ".......................KwwWWWWWWWvwWWwwwwwwwwwwWKKK.............",
+    ".......................KwwWWWWWWWWvwWwwwwwwwwwwwWWKK............",
+    ".......................KwwWWWWWWWWvwWWWwwwwwwwwwwWWKK...........",
+    ".......................KwwWWWWWWWWWvwWWWwwwwwwwwwwWWKK..........",
+    ".......................KwwWWWWWWWWWvwWWWvwwwwwwwwwwWWKK.........",
+    ".......................KwwWWWWWWWWWWvwWWvvwwwwwwwwwWWWKK........",
+    ".......................KwwWWWWWWWWWWvwWWvvvwwwwwwwwwWWWK........",
+    ".......................KwwWWWWWWWWWWWvwWvvvvwwwwwwwwwWWKK.......",
+    ".......................KwwWWWWWWWWWWWWWWvvvvvwwwwwwwwWWWKK......",
+    ".......................KwwWWWWWWWWWWWWWWvvvvvvwwwwwwwwWWWK......",
+    ".......................KwwWWWWWWWWWWWWWWvvvvvvvwwwwwwwwWWKK.....",
+    "......................KKwwWWWWWWWWWWWWWWvvvvvvvKwwwwwwwWWWKK....",
+    ".....................KKBBBBBBBBBBBBBBBvvvvvvvvvvwwwwwwwwWWWKK...",
+    "....................KKBBBBBbBBnBBBBbBBnvvvvvvvvvvwwwwwwwWWWWK...",
+    "...................KKBBBBBbbBBnBBBBbBBBnvvvvvvvvvwwwwwWWWWWwKK..",
+    "..................KKnnBBBBbBBnnBBBBBbBBnvvvvvvvvvvwwwWWWWWwWvK..",
+    ".................KKnnBBBBbbBBnBBBBBBbbBBnvvvvvvwvvwwwWWWWwWvWK..",
+    ".................KnnBBBBBbBBBnBBBBBBBbBBnvvvvwwwwwvwwWWWwWvWWK..",
+    "................KKnnBBBBbbBBnnBBnBBBBbbBBnvvvwwwwwvvwWWwWvWWwK..",
+    "...............KKnnBBBBBbBBBnBBBnBBBBBbBBBvvwwwwwvwvwWwWvWWWwK..",
+    "..............KKnnBBBBBbbBBBnBBBnBBBBBbBBBBvvwwSSSvvKwWvSSSwKK..",
+    "..............KnnBBBBBBbBBBnBBBnnnBBBBBbBBBnvwvSSSvKwKvwSSSKK...",
+    ".............KKnnBBBBBbbBBBnBBBnnnBBBBBbBBBBvvvsSSSKKvKKSSSKK...",
+    "............KKnnBBBBBBbBBBBnBBnBnBnBBBBBbBBBvnvvsSSKKKKKKSSSK...",
+    "...........KKnnBBBBBBbBBBBnnBBnBnBnBBBBBbBBBBnnBBSSSK...KSSSK...",
+    "..........KKnnBBBBBBbbBBBBnBBBnBnBnBBBBBBbBBBBnBBsSSKK..KsSSKK..",
+    "..........KnnBBBBBBBbBBBBnBBBnBBnBBnBBBBBbBBBBBnBBsSsK..KKSSSK..",
+    ".........KKnnBBBBBBbBBBBBnBBBnBBnBBnBBBBBBbBBBBnnBBsBKK..KsSsK..",
+    "........KKnnBBBBBBbbBBBBnnKKKKKKKKKKKKnnBBbBBBBBnnBBBBK..KKsKK..",
+    "........KnnBBBBBBbbBBBBBnKK..........KKnnBBbBBBBBnBBBBKK..KKK...",
+    ".......KKnnBBBBBBbBBBBBnnK............KnnBBbBBBBBBnBBBBK........",
+    ".......KnnBBBBBBbBBBBBBnKK............KKnnBbbBBBBBnnBBBKK.......",
+    "......KKnnBBBBBbbBBBBBnnK..............KnnBBbBBBBBBnBBBBK.......",
+    ".....KKnnBBBBBbbBBBBBBnKK..............KnnBBBbBBBBBBnBBBKK......",
+    ".....KnnnnnnnnnnnnnnnnnK...............KKnnnnnnnnnnnnnnnnK......",
+    ".....KKnnnnnnnnnnnnnnnnK................KnnnnnnnnnnnnnnnnK......",
+    "......KKsSSnSsKKKKKKKKKK................KKKKsSSnSSsKKKKKKK......",
+    "......KzZZZZZZzK..........................KzZZZZZZZzK...........",
+    "......KKKKKKKKKK..........................KKKKKKKKKKK...........",
+    "................................................................",
+    "................................................................"
+  ]
+}

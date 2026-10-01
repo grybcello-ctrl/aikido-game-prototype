@@ -19,6 +19,11 @@ export interface ModeRules {
   shake: { perfect: number; throwPerfect: number } | null;
   /** Phase 3(던지기) Perfect 피니시 셰이크 — cameras.main.shake(200, 0.02) */
   finishShake: boolean;
+  /**
+   * Phase 3 Perfect 때 하이폴 우케의 비행 (Tween).
+   * offscreen = 화면 밖으로 날아감 (피니시 극대화) · arc = 포물선으로 떴다가 낙법 위치에 착지 · none = 제자리
+   */
+  finishFlight: 'offscreen' | 'arc' | 'none';
   /** 판정 파티클 */
   particles: 'none' | 'light' | 'burst';
   /** 거리 이동 보간 */
@@ -49,6 +54,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     hitstop: null,
     shake: null,
     finishShake: false, // 수련: 흔들림 없이 물 흐르듯
+    finishFlight: 'arc',
     particles: 'none',
     motion: { interpolation: 'smooth', stepMs: SNAP_MS, moveScale: 1.8, missStillMoves: true },
     showTimingCue: true,
@@ -66,6 +72,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     hitstop: { perfectMs: 110, throwPerfectMs: 150 },
     shake: { perfect: 0.006, throwPerfect: 0.012 },
     finishShake: true,
+    finishFlight: 'offscreen',
     particles: 'burst',
     motion: { interpolation: 'stepped', stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
     showTimingCue: false,
@@ -83,6 +90,7 @@ export const MODES: Record<ModeId, ModeRules> = {
     hitstop: null,
     shake: null,
     finishShake: true,
+    finishFlight: 'arc', // 연습·TEST: 착지 후 낙법 연출까지 확인
     particles: 'light',
     motion: { interpolation: 'stepped', stepMs: SNAP_MS, moveScale: 1, missStillMoves: false },
     showTimingCue: true,

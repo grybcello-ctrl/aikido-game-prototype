@@ -13,7 +13,19 @@ export const CHARACTER_TEXTURES = {
   playerThrow: 'player_throw',
   /** 완벽한 하이폴 낙법 체공 — Phase 3 Perfect 에서 교체 */
   enemyUkemiPerfect: 'enemy_ukemi_perfect',
+  // ── Dynamic Aikido 키포즈 (현재 기본) ──
+  /** Phase 1: 우케가 쇄도하며 손날 정면타 */
+  ukeAttack: 'uke_attack',
+  /** Phase 2 Perfect: 나게가 사각으로 깊게 입신 (적 앞에 그림) */
+  nageIrimi: 'nage_irimi',
+  /** Phase 3 Perfect: 나게 중심 낙하 던지기 · 잔심 */
+  nageThrow: 'nage_throw',
+  /** Phase 3 Perfect: 우케 거꾸로 뜬 다이내믹 하이폴 */
+  ukeHighfall: 'uke_highfall',
 } as const satisfies Record<string, SpriteKey>;
+
+/** 입신 키포즈: 적의 사각에 파고든 상태라 토리를 우케 앞에 그린다 */
+export const FRONT_OF_UKE_TEXTURES: ReadonlySet<string> = new Set([CHARACTER_TEXTURES.playerIrimi, CHARACTER_TEXTURES.nageIrimi]);
 export type CharacterTexture = SpriteKey;
 
 export const isCharacterTexture = (key: string): key is SpriteKey => key in SPRITES;

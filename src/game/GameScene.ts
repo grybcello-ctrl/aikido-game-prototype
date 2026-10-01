@@ -3,7 +3,7 @@ import manifestJson from '../../data/animations.json';
 import katatedoriShihonage from '../../data/techniques/katatedori_shihonage.json';
 import shomenuchiIriminage from '../../data/techniques/shomenuchi_iriminage.json';
 import { FLOOR_Y, GAME_HEIGHT, GAME_WIDTH, STAGE_CENTER_X } from '../config/gameConfig';
-import { CHARACTER_TEXTURES, addCharacterSprite, preloadCharacterSprites } from '../art/characterSprites';
+import { CHARACTER_TEXTURES, FRONT_OF_UKE_TEXTURES, addCharacterSprite, preloadCharacterSprites } from '../art/characterSprites';
 import { TimingEngine } from '../engine/TimingEngine';
 import type { EngineEvent, EngineResult, FailReason } from '../engine/types';
 import { validateTechnique } from '../engine/validate';
@@ -64,6 +64,12 @@ const FAIL_TEXT: Record<FailReason['type'], string> = {
   aborted: '중단',
 };
 const CHEST_Y = FLOOR_Y - 38;
+/** 하이폴 비행 (가상 ms · px). 오른쪽(+x) = 토리 반대쪽 */
+const FLIGHT = {
+  offscreen: { ms: 620, dx: 400, rise: 150, fall: 60 },
+  /** drift = 토리 머리 위로 겹치지 않게 토리 반대쪽으로 밀려나는 거리 (라운드 끝까지 유지, 다음 라운드에서 0) */
+  arc: { minMs: 220, height: 40, drift: 26 },
+} as const;
 /** 라운드 시작 전 READY 표시 시간 (가상 ms) */
 const READY_MS = 800;
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
@@ -138,6 +144,15 @@ export class GameScene extends Phaser.Scene {
   private speedBtn!: PixelButton;
   private cleanups: (() => void)[] = [];
   private embedded: EmbeddedTest | null = null;
+  /** 하이폴 비행 오프셋 (Spacing 위치에 더함). Tween 이 값을 바꾸고 update() 가 적용 */
+  private flight = { x: 0, y: 0 };
+  private flightTween: Phaser.Tweens.Tween | null = null;
+  /**
+   * 피니시 포즈 유지: Phase 3 Perfect 뒤 낙법 시작 큐(source 'ukemi')가 던지기·하이폴 키포즈를 덮지 않게 보류.
+   * tori = 라운드 끝까지 잔심(nage_throw) 유지, uke = 비행이 끝날 때까지 보류 후 마지막 큐 재생
+   */
+  private hold = { tori: false, uke: false };
+  private pendingUke: { key: string } | null = null;
   private pack: SkillPack | null = null;
 
   constructor() {
@@ -354,6 +369,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetStage(): void {
+    this.stopFlight();
     this.roundStart = this.clock.toVirtual(this.realNow());
     this.spacing = new Spacing(this.tech, this.mode.motion, STAGE_CENTER_X);
     this.fx.clear();
@@ -448,10 +464,14 @@ export class GameScene extends Phaser.Scene {
       }
       switch (e.type) {
         case 'cue':
+          if (e.source === 'ukemi' && e.actor !== 'fx' && this.hold[e.actor]) {
+            if (e.actor === 'uke') this.pendingUke = { key: e.key };
+            break;
+          }
           if (e.actor === 'tori') {
             this.toriAnim.play(e.key, e.atMs);
             // 입신으로 적의 사각에 파고든 순간엔 토리를 적 앞에 그림 (평소엔 우케가 앞)
-            this.tori.setDepth(this.tori.texture.key === CHARACTER_TEXTURES.playerIrimi ? 12 : 10);
+            this.tori.setDepth(FRONT_OF_UKE_TEXTURES.has(this.tori.texture.key) ? 12 : 10);
           }
           else if (e.actor === 'uke') this.ukeAnim.play(e.key, e.atMs);
           else {
@@ -511,7 +531,7 @@ export class GameScene extends Phaser.Scene {
         this.tintFlash(Math.min(ms, 70));
         if (m.shake && !(isThrow && m.finishShake)) this.cameras.main.shake(ms, isThrow ? m.shake.throwPerfect : m.shake.perfect);
       }
-      if (isThrow) this.onThrowPerfect();
+      if (isThrow) this.onThrowPerfect(e, m.hitstop?.throwPerfectMs ?? 0);
       if (m.particles === 'burst') this.sparks.explode(isThrow ? 30 : 18, c.x, c.y);
       else if (m.particles === 'light') this.sparks.explode(6, c.x, c.y);
     } else if (e.grade === 'good' && m.particles !== 'none') {
@@ -522,18 +542,86 @@ export class GameScene extends Phaser.Scene {
   /**
    * Phase 3(던지기) Perfect 피니시.
    * 스프라이트 교체는 데이터가 담당: throw.onJudge.perfect.cues 의
-   *   tori.throw_perfect   → player_throw         (카케·잔심)
-   *   uke.ukemi_perfect_air → enemy_ukemi_perfect (하이폴 체공)
-   * 여기서는 교체를 보장하고(데이터에 큐가 없어도) 화면 전체를 묵직하게 흔든다.
+   *   tori.throw_perfect    → nage_throw   (중심 낙하 던지기 · 잔심)
+   *   uke.ukemi_perfect_air → uke_highfall (거꾸로 뜬 다이내믹 하이폴)
+   * 여기서는 교체를 보장하고(데이터에 큐가 없거나 다른 Key 여도), 우케를 날리고, 화면을 묵직하게 흔든다.
+   * @param hitstopMs 화면 정지(실시간 ms) — 비행은 정지가 끝난 뒤 출발
    */
-  private onThrowPerfect(): void {
-    if (this.tori.texture.key !== CHARACTER_TEXTURES.playerThrow && this.textures.exists(CHARACTER_TEXTURES.playerThrow)) {
-      this.tori.setTexture(CHARACTER_TEXTURES.playerThrow);
+  private onThrowPerfect(e: Ev<'judge'>, hitstopMs: number): void {
+    if (this.tori.texture.key !== CHARACTER_TEXTURES.nageThrow && this.textures.exists(CHARACTER_TEXTURES.nageThrow)) {
+      this.tori.setTexture(CHARACTER_TEXTURES.nageThrow);
     }
-    if (this.uke.texture.key !== CHARACTER_TEXTURES.enemyUkemiPerfect && this.textures.exists(CHARACTER_TEXTURES.enemyUkemiPerfect)) {
-      this.uke.setTexture(CHARACTER_TEXTURES.enemyUkemiPerfect);
+    if (this.uke.texture.key !== CHARACTER_TEXTURES.ukeHighfall && this.textures.exists(CHARACTER_TEXTURES.ukeHighfall)) {
+      this.uke.setTexture(CHARACTER_TEXTURES.ukeHighfall);
     }
     if (this.mode.finishShake) this.cameras.main.shake(200, 0.02);
+    this.launchHighfall(e, hitstopMs);
+  }
+
+  /** 비행 끝: 보류했던 우케 낙법 큐를 지금 시각으로 재생 (arc 착지 → 낙법 연출) */
+  private releaseUke(): void {
+    this.hold.uke = false;
+    const p = this.pendingUke;
+    this.pendingUke = null;
+    if (p) this.ukeAnim.play(p.key, this.local());
+  }
+
+  /**
+   * 하이폴 비행 Tween. tweens.timeScale = 배속이므로 duration 은 가상 ms 그대로,
+   * 히트스톱(실시간)만큼은 delay 로 기다린다 (delay 도 timeScale 을 받으므로 × 배속).
+   */
+  private launchHighfall(e: Ev<'judge'>, hitstopMs: number): void {
+    this.stopFlight();
+    this.hold = { tori: true, uke: true };
+    // 화면 밖 비행은 낙법 Perfect 가 확정일 때만 (던지기가 마지막 판정 → 지금 점수 비율이 최종). 아니면 포물선 착지
+    const ratio = this.engine?.getState().score.ratio ?? 0;
+    const sure = ratio >= this.tech.ukemi.thresholds.perfect;
+    const kind = this.mode.finishFlight === 'offscreen' && !sure ? 'arc' : this.mode.finishFlight;
+    if (kind === 'none') {
+      this.releaseUke();
+      return;
+    }
+    const delay = hitstopMs * (SPEEDS[this.speedIdx] ?? 1);
+    const f = this.flight;
+    if (kind === 'offscreen') {
+      // 회전력 그대로 높이 솟구쳐 토리 반대쪽 화면 밖으로 — 가속하며 빠져나감
+      const o = FLIGHT.offscreen;
+      this.flightTween = this.tweens.addCounter({
+        from: 0, to: 1, duration: o.ms, delay, ease: 'Quad.easeIn',
+        onUpdate: (tw) => {
+          const t = tw.getValue() ?? 0;
+          f.x = Math.round(o.dx * t);
+          f.y = Math.round(-o.rise * t + o.fall * t * t);
+        },
+        onComplete: () => { this.uke.setVisible(false); this.cameras.main.flash(80, 255, 255, 255); },
+      });
+      return;
+    }
+    // arc: 낙법 시작(던지기 페이즈 끝)에 맞춰 포물선으로 떴다가 착지 → 데이터의 낙법 연출로 이어짐
+    const beat = this.engine?.timeline.beats[e.beatIndex];
+    const ms = Math.max(FLIGHT.arc.minMs, (beat?.endMs ?? e.atMs) - e.atMs);
+    this.flightTween = this.tweens.addCounter({
+      from: 0, to: 1, duration: ms, delay,
+      onUpdate: (tw) => {
+        const t = tw.getValue() ?? 0;
+        f.x = Math.round(FLIGHT.arc.drift * t);
+        f.y = Math.round(-FLIGHT.arc.height * 4 * t * (1 - t));
+      },
+      onComplete: () => {
+        f.y = 0;
+        this.releaseUke(); // 착지 → 낙법 연출 (Spacing 의 낙법 이동은 그대로 더해짐)
+      },
+    });
+  }
+
+  private stopFlight(): void {
+    this.hold = { tori: false, uke: false };
+    this.pendingUke = null;
+    this.flightTween?.remove();
+    this.flightTween = null;
+    this.flight.x = 0;
+    this.flight.y = 0;
+    this.uke?.setVisible(true);
   }
 
   private onFinish(result: EngineResult): void {
@@ -613,7 +701,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.update(t);
     const pos = this.spacing.positions(t);
     this.tori.setX(pos.toriX);
-    this.uke.setX(pos.ukeX);
+    this.uke.setPosition(pos.ukeX + this.flight.x, FLOOR_Y + this.flight.y);
     this.drawTimingCue(t, pos);
     this.drawHud(pos.distance);
   }
@@ -680,6 +768,7 @@ export class GameScene extends Phaser.Scene {
       },
       warnings: [...this.seqs.warnings],
       dataErrors: [...this.dataErrors],
+      flight: { ...this.flight, visible: this.uke?.visible ?? true, texture: this.uke?.texture.key, mode: this.mode.finishFlight },
       embedded: !!this.embedded,
       fromPack: !this.embedded && !!this.pack?.techniques.length && this.techniques.some((t) => this.pack!.techniques.includes(t)),
     };
