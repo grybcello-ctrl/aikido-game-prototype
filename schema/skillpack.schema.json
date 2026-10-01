@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aikido-game-prototype.local/schema/skillpack.schema.json",
+  "title": "Aikido Skill Pack (Developer Mode export)",
+  "description": "개발자 모드 Export JSON. 기술 목록 + 업로드 이미지로 만든 시퀀스 + 이미지 Data URI. 기술 하나하나는 technique.schema.json 그대로이므로 data/techniques/*.json 으로 떼어 써도 된다.",
+  "type": "object",
+  "required": ["schemaVersion", "techniques", "animations", "assets"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "techniques": {
+      "type": "array",
+      "items": { "$ref": "technique.schema.json" }
+    },
+    "animations": {
+      "description": "추가 시퀀스. 기본 매니페스트(data/animations.json)의 Key 는 덮어쓰지 않는다",
+      "type": "object",
+      "required": ["sequences"],
+      "properties": {
+        "sequences": {
+          "type": "object",
+          "propertyNames": { "pattern": "^custom\\.[a-z0-9_]+$" },
+          "additionalProperties": {
+            "allOf": [
+              { "$ref": "animations.schema.json#/$defs/sequence" },
+              { "required": ["image"], "properties": { "image": { "type": "string", "pattern": "^custom_[0-9a-f]{8}$" } } }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "assets": {
+      "description": "텍스처 키 → 이미지 Data URI (PNG / SVG / JPEG / GIF / WebP). 키 = 내용 해시라 같은 이미지는 한 번만 저장",
+      "type": "object",
+      "propertyNames": { "pattern": "^custom_[0-9a-f]{8}$" },
+      "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml|jpeg|gif|webp)[;,]" }
+    }
+  },
+  "additionalProperties": false
+}

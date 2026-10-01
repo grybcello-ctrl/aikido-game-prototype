@@ -15,18 +15,37 @@ export interface OneButtonOptions {
   preventDefault?: boolean;
   /** 이벤트 시각 → 엔진 시계 변환 (배속/일시정지 시계 등). 기본 그대로 */
   toEngineTime?: (eventTimeStamp: number) => number;
+  /**
+   * true 를 반환하면 그 키 입력은 무시하고 기본 동작도 막지 않는다.
+   * 기본: 글자 입력 중인 요소(input · textarea · select · contenteditable) — 개발자 모드 폼에서 Space 를 쳐도 판정되지 않게
+   */
+  ignoreKeyEvent?: (e: KeyboardEvent) => boolean;
 }
 
 type Target = Pick<EventTarget, 'addEventListener' | 'removeEventListener'>;
+
+/** 키 입력이 글자 입력 요소로 가는 중인가 (게임 단축키·원버튼 입력에서 제외할 대상) */
+export const isTypingTarget = (t: EventTarget | null): boolean => {
+  const el = t as (HTMLElement & { isContentEditable?: boolean }) | null;
+  if (!el || typeof el.tagName !== 'string') return false;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName.toUpperCase();
+  if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (tag !== 'INPUT') return false;
+  const type = ((el as HTMLInputElement).type || 'text').toLowerCase();
+  return !['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image'].includes(type);
+};
 
 export const bindOneButton = (target: Target, onPress: (atMs: number) => void, opts: OneButtonOptions = {}): (() => void) => {
   const codes = new Set(opts.codes ?? ['Space']);
   const prevent = opts.preventDefault ?? true;
   const map = opts.toEngineTime ?? ((t: number) => t);
+  const ignore = opts.ignoreKeyEvent ?? ((e: KeyboardEvent) => isTypingTarget(e.target));
 
   const onKey = (ev: Event) => {
     const e = ev as KeyboardEvent;
     if (!codes.has(e.code)) return;
+    if (ignore(e)) return;
     if (prevent) e.preventDefault();
     if (e.repeat) return; // 누르고 있기 = 1회 입력
     onPress(map(e.timeStamp));

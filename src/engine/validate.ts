@@ -56,9 +56,41 @@ export const validateTechnique = (input: unknown): string[] => {
     return ok;
   };
 
+  /** 길이·퍼펙트 시각·판정 윈도우·큐 (페이즈 / 진행부 회차 공통). 길이가 유효하면 반환 */
+  const checkTiming = (ph: Obj, label: string, animationsRequired: boolean): number | null => {
+    const dur = isPosInt(ph.durationMs) ? ph.durationMs : null;
+    if (dur === null) err(`${label}.durationMs`, '1 이상 정수여야 함');
+    const perfectMs = isMs(ph.perfectMs) ? ph.perfectMs : null;
+    if (perfectMs === null) err(`${label}.perfectMs`, '0 이상 정수여야 함');
+
+    const w = ph.window;
+    if (!isObj(w)) {
+      err(`${label}.window`, 'perfect/good/bad 객체가 필요');
+    } else {
+      const P = readTier(w.perfect);
+      const G = readTier(w.good);
+      const B = readTier(w.bad);
+      if (!P) err(`${label}.window.perfect`, '0 이상 정수 또는 {early, late}');
+      if (!G) err(`${label}.window.good`, '0 이상 정수 또는 {early, late}');
+      if (!B) err(`${label}.window.bad`, '0 이상 정수 또는 {early, late}');
+      if (P && G && B) {
+        for (const side of ['early', 'late'] as const)
+          if (!(P[side] <= G[side] && G[side] <= B[side]))
+            err(`${label}.window`, `perfect ≤ good ≤ bad 위반 (${side}: ${P[side]} / ${G[side]} / ${B[side]})`);
+        if (perfectMs !== null && dur !== null) {
+          if (perfectMs - B.early < 0) err(`${label}.window.bad`, `구간 시작 ${perfectMs - B.early}ms 가 페이즈 시작(0) 이전`);
+          if (perfectMs + B.late > dur) err(`${label}.window.bad`, `구간 끝 ${perfectMs + B.late}ms 가 페이즈 끝(${dur}) 이후`);
+        }
+      }
+    }
+    if (animationsRequired || ph.animations !== undefined) cueList(ph.animations, `${label}.animations`, dur, 1);
+    return dur;
+  };
+
   // ── phases ──
   const phaseDurations: number[] = [];
   let repeatDefault: number | null = null;
+  let stepDurations: number[] | null = null;
   if (!Array.isArray(t.phases) || t.phases.length !== 3) {
     err('phases', '[intro, progression, throw] 3개 배열이어야 함');
   } else {
@@ -70,38 +102,10 @@ export const validateTechnique = (input: unknown): string[] => {
       if (typeof ph.id !== 'string' || !ID.test(ph.id)) err(`${path}.id`, '`^[a-z0-9_]+$` 형식이어야 함');
       const label = `${path}(${String(ph.id)})`;
 
-      const dur = isPosInt(ph.durationMs) ? ph.durationMs : null;
-      if (dur === null) err(`${label}.durationMs`, '1 이상 정수여야 함');
-      else phaseDurations.push(dur);
-      const perfectMs = isMs(ph.perfectMs) ? ph.perfectMs : null;
-      if (perfectMs === null) err(`${label}.perfectMs`, '0 이상 정수여야 함');
-
+      const dur = checkTiming(ph, label, true);
+      if (dur !== null) phaseDurations.push(dur);
       if (ph.weight !== undefined && !(typeof ph.weight === 'number' && Number.isFinite(ph.weight) && ph.weight > 0))
         err(`${label}.weight`, '0 보다 큰 수여야 함');
-
-      // 판정 윈도우
-      const w = ph.window;
-      if (!isObj(w)) {
-        err(`${label}.window`, 'perfect/good/bad 객체가 필요');
-      } else {
-        const P = readTier(w.perfect);
-        const G = readTier(w.good);
-        const B = readTier(w.bad);
-        if (!P) err(`${label}.window.perfect`, '0 이상 정수 또는 {early, late}');
-        if (!G) err(`${label}.window.good`, '0 이상 정수 또는 {early, late}');
-        if (!B) err(`${label}.window.bad`, '0 이상 정수 또는 {early, late}');
-        if (P && G && B) {
-          for (const side of ['early', 'late'] as const)
-            if (!(P[side] <= G[side] && G[side] <= B[side]))
-              err(`${label}.window`, `perfect ≤ good ≤ bad 위반 (${side}: ${P[side]} / ${G[side]} / ${B[side]})`);
-          if (perfectMs !== null && dur !== null) {
-            if (perfectMs - B.early < 0) err(`${label}.window.bad`, `구간 시작 ${perfectMs - B.early}ms 가 페이즈 시작(0) 이전`);
-            if (perfectMs + B.late > dur) err(`${label}.window.bad`, `구간 끝 ${perfectMs + B.late}ms 가 페이즈 끝(${dur}) 이후`);
-          }
-        }
-      }
-
-      cueList(ph.animations, `${label}.animations`, dur, 1);
 
       if (ph.onJudge !== undefined) {
         if (!isObj(ph.onJudge)) err(`${label}.onJudge`, '객체가 아님');
@@ -127,17 +131,34 @@ export const validateTechnique = (input: unknown): string[] => {
         } else {
           repeatDefault = r.default;
         }
-      } else if (ph.repeat !== undefined) {
-        err(`${label}.repeat`, '진행부에만 허용');
+        if (ph.steps !== undefined) {
+          if (!Array.isArray(ph.steps) || ph.steps.length === 0) err(`${label}.steps`, '회차 타이밍 1개 이상 배열');
+          else {
+            stepDurations = [];
+            ph.steps.forEach((st, si) => {
+              const sp = `${label}.steps[${si}]`;
+              if (!isObj(st)) return err(sp, '객체가 아님');
+              if (st.label !== undefined && typeof st.label !== 'string') err(`${sp}.label`, '문자열');
+              const d = checkTiming(st, sp, false);
+              stepDurations?.push(d ?? 0);
+            });
+          }
+        }
+      } else {
+        if (ph.repeat !== undefined) err(`${label}.repeat`, '진행부에만 허용');
+        if (ph.steps !== undefined) err(`${label}.steps`, '진행부에만 허용');
       }
     });
 
-    // 총 시간 = 도입 + 진행 × default + 던지기
+    // 총 시간 = 도입 + 진행부 회차 합(N = default) + 던지기
     if (phaseDurations.length === 3 && repeatDefault !== null && isPosInt(t.totalDurationMs)) {
       const [a, b, c] = phaseDurations as [number, number, number];
-      const sum = a + b * repeatDefault + c;
-      if (sum !== t.totalDurationMs)
-        err('totalDurationMs', `${t.totalDurationMs} ≠ ${a} + ${b}×${repeatDefault} + ${c} = ${sum}`);
+      const n = repeatDefault;
+      const steps = stepDurations as number[] | null;
+      const prog = steps?.length ? Array.from({ length: n }, (_, i) => steps[i % steps.length] as number) : null;
+      const sum = a + (prog ? prog.reduce((x, y) => x + y, 0) : b * n) + c;
+      const expr = prog ? `${a} + (${prog.join('+')}) + ${c}` : `${a} + ${b}×${n} + ${c}`;
+      if (sum !== t.totalDurationMs) err('totalDurationMs', `${t.totalDurationMs} ≠ ${expr} = ${sum}`);
     }
   }
 

@@ -28,16 +28,36 @@ export const createGameConfig = (scenes: Phaser.Types.Scenes.SceneType[], parent
   scene: scenes,
 });
 
-/** 창 크기에 맞춰 정수 배율 줌. 640x360 보다 작은 화면만 비정수 축소 */
+/**
+ * 부모 요소(#game) 크기에 맞춰 정수 배율 줌. 640x360 보다 작은 영역만 비정수 축소.
+ * 부모 크기 기준이라 개발자 모드에서 #game 이 가운데 칸으로 줄어들어도 그 칸에 맞춰 다시 계산된다.
+ */
 export const installIntegerZoom = (game: Phaser.Game): (() => void) => {
   const apply = () => {
     if (!game.canvas) return; // 부팅 전(캔버스 생성 전)에는 적용 불가
-    const ratio = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
-    game.scale.setZoom(ratio >= 1 ? Math.floor(ratio) : ratio);
+    const parent = game.canvas.parentElement;
+    const w = parent?.clientWidth || window.innerWidth;
+    const h = parent?.clientHeight || window.innerHeight;
+    const ratio = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    const zoom = ratio >= 1 ? Math.floor(ratio) : Math.max(0.25, ratio);
+    if (game.scale.zoom !== zoom) game.scale.setZoom(zoom);
+    else game.scale.refresh(); // 배율은 같아도 부모 크기가 바뀌면 가운데 정렬 다시
   };
   window.addEventListener('resize', apply);
+  let ro: ResizeObserver | null = null;
+  const observe = () => {
+    apply();
+    const parent = game.canvas?.parentElement;
+    if (parent && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => apply());
+      ro.observe(parent);
+    }
+  };
   // Phaser 는 DOM 준비 후 비동기로 부팅 → READY 이후에 첫 적용 (이미 부팅됐으면 즉시)
-  if (game.isBooted && game.canvas) apply();
-  else game.events.once(Phaser.Core.Events.READY, apply);
-  return () => window.removeEventListener('resize', apply);
+  if (game.isBooted && game.canvas) observe();
+  else game.events.once(Phaser.Core.Events.READY, observe);
+  return () => {
+    window.removeEventListener('resize', apply);
+    ro?.disconnect();
+  };
 };

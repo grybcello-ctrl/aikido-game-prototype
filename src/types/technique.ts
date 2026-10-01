@@ -127,10 +127,26 @@ export interface RepeatRange {
   default: number;
 }
 
+/**
+ * 진행부 회차별 타이밍 (개발자 모드 '+ 타이밍 추가').
+ * 회차 i 는 steps[i % steps.length] 로 기본값(durationMs / perfectMs / window / animations)을 덮어쓴다.
+ * onJudge · spacing · weight 는 진행부 공통값을 그대로 쓴다.
+ */
+export interface ProgressionStep {
+  label?: string;
+  durationMs: Ms;
+  perfectMs: Ms;
+  window: JudgeWindow;
+  /** 생략 시 진행부 공통 animations */
+  animations?: AnimationCue[];
+}
+
 export interface ProgressionPhase extends PhaseCommon {
   type: 'progression';
-  /** 회차마다 같은 perfectMs / window / animations 를 재사용 */
+  /** steps 가 없으면 회차마다 같은 perfectMs / window / animations 를 재사용 */
   repeat: RepeatRange;
+  /** 회차별 타이밍 (1개 이상). 있으면 회차 i = steps[i % length] */
+  steps?: ProgressionStep[];
 }
 
 export interface ThrowPhase extends PhaseCommon {
@@ -196,7 +212,8 @@ export interface TechniqueData {
   name: string;
   description?: string;
   /**
-   * 기술 전체 시간 = intro.durationMs + progression.durationMs × repeat.default + throw.durationMs.
+   * 기술 전체 시간 = intro.durationMs + (진행부 회차 길이 합, N = repeat.default) + throw.durationMs.
+   * steps 가 없으면 진행부 합 = progression.durationMs × repeat.default.
    * 낙법 연출 제외. 런타임에 N 이 바뀌면 엔진이 다시 계산한다.
    */
   totalDurationMs: Ms;

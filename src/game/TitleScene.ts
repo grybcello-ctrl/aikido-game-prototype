@@ -16,7 +16,9 @@ const MODE_ORDER: ModeId[] = ['flow', 'arcade', 'practice'];
  * 타이틀 씬
  * - 중앙 일러스트 (더미 사각형 패널 + 파랑 토리 / 빨강 우케 플레이스홀더 스프라이트 ×2 정수 확대)
  * - "Touch to Start" 스텝 깜빡임 (보간 없는 12fps 감성)
- * - 모드 선택 버튼 (수련 / 게임 / 연습), 화면 아무 곳이나 터치 · Space · Enter → 게임 진입
+ * - [PLAY MODE] / [DEVELOPER MODE] 분기 버튼
+ *     PLAY      : 모드 선택 버튼 (수련 / 게임 / 연습), 화면 아무 곳이나 터치 · Space · Enter → 게임 진입
+ *     DEVELOPER : 기술 에디터 (EditorScene + HTML DOM 오버레이) · D 키
  */
 export class TitleScene extends Phaser.Scene {
   private starting = false;
@@ -46,8 +48,16 @@ export class TitleScene extends Phaser.Scene {
     this.add.text(GAME_WIDTH / 2, 24, 'AIKIDO ONE-BUTTON', { ...font(20), fontStyle: 'bold' }).setOrigin(0.5);
     this.add.text(GAME_WIDTH / 2, 44, '아이키도 원버튼 — 마아이와 무스비', font(10, '#9aa0b8')).setOrigin(0.5);
 
+    // 분기: PLAY MODE (게임) / DEVELOPER MODE (기술 에디터)
+    new PixelButton(this, GAME_WIDTH / 2 - 72, 254, 'PLAY MODE', {
+      width: 132, height: 22, fontSize: 12, onClick: () => this.startGame(),
+    }).setSelected(true);
+    new PixelButton(this, GAME_WIDTH / 2 + 72, 254, 'DEVELOPER MODE', {
+      width: 132, height: 22, fontSize: 12, onClick: () => this.startEditor(),
+    });
+
     // "Touch to Start" 스텝 깜빡임: 보임 600ms / 숨김 300ms
-    const start = this.add.text(GAME_WIDTH / 2, 258, 'Touch to Start', { ...font(16, '#fff4c2'), fontStyle: 'bold' }).setOrigin(0.5);
+    const start = this.add.text(GAME_WIDTH / 2, 279, 'Touch to Start', { ...font(14, '#fff4c2'), fontStyle: 'bold' }).setOrigin(0.5);
     let visible = true;
     this.time.addEvent({
       loop: true,
@@ -64,12 +74,12 @@ export class TitleScene extends Phaser.Scene {
 
     // 모드 선택
     MODE_ORDER.forEach((id, i) => {
-      this.modeButtons[id] = new PixelButton(this, GAME_WIDTH / 2 + (i - 1) * 76, 292, MODES[id].label, {
-        width: 68, height: 20, fontSize: 11, onClick: () => this.selectMode(id),
+      this.modeButtons[id] = new PixelButton(this, GAME_WIDTH / 2 + (i - 1) * 76, 303, MODES[id].label, {
+        width: 68, height: 18, fontSize: 11, onClick: () => this.selectMode(id),
       });
     });
-    this.tagline = this.add.text(GAME_WIDTH / 2, 314, '', font(9, '#9aa0b8')).setOrigin(0.5);
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, 'Space · Enter · 터치 = 시작     1 2 3 = 모드', font(9, '#6c6c80')).setOrigin(0.5);
+    this.tagline = this.add.text(GAME_WIDTH / 2, 324, '', font(9, '#9aa0b8')).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, 'Space · Enter · 터치 = PLAY     D = DEVELOPER     1 2 3 = 모드', font(9, '#6c6c80')).setOrigin(0.5);
     this.selectMode(this.mode);
 
     // 버튼 밖 터치 → 시작
@@ -79,6 +89,7 @@ export class TitleScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     kb?.on('keydown-SPACE', () => this.startGame());
     kb?.on('keydown-ENTER', () => this.startGame());
+    kb?.on('keydown-D', () => this.startEditor());
     kb?.on('keydown-ONE', () => this.selectMode('flow'));
     kb?.on('keydown-TWO', () => this.selectMode('arcade'));
     kb?.on('keydown-THREE', () => this.selectMode('practice'));
@@ -97,6 +108,14 @@ export class TitleScene extends Phaser.Scene {
     this.cameras.main.flash(80, 255, 255, 255);
     this.cameras.main.fadeOut(220, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('game', { mode: this.mode }));
+  }
+
+  /** DEVELOPER MODE: 기술 에디터 씬 (DOM 오버레이는 EditorScene 이 붙이고 떼어 낸다) */
+  private startEditor(): void {
+    if (this.starting) return;
+    this.starting = true;
+    this.cameras.main.fadeOut(180, 0, 0, 0);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('editor'));
   }
 
   private drawBackdrop(): void {
